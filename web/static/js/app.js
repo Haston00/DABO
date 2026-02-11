@@ -890,12 +890,6 @@ const DABO = {
                 ).join('');
             }
 
-            // WBS
-            const wbsEl = document.getElementById('wbsText');
-            if (wbsEl && data.wbs_text) {
-                wbsEl.textContent = data.wbs_text;
-            }
-
             this.toast(`Schedule generated: ${data.total_activities} activities, ${data.project_duration_days} days`, 'success');
 
         } catch (e) {
@@ -906,80 +900,294 @@ const DABO = {
         spinner.classList.add('hidden');
     },
 
+    // ── Gantt config ──
+    _ganttPxPerDay: 18,   // pixels per calendar day (zoom level)
+    _ganttCollapsed: {},   // {wbs_code: true/false}
+
     _buildGanttChart(ganttData) {
-        const container = document.getElementById('ganttContainer');
-        if (!container) return;
+        if (!ganttData || !ganttData.length) return;
 
-        // Build a simple horizontal bar chart as Gantt
-        const canvas = document.getElementById('ganttChart');
-        if (!canvas) return;
-        if (this._charts.gantt) this._charts.gantt.destroy();
-
-        // Parse dates to offsets
+        // ── Parse dates & compute range ──
         const allDates = ganttData.flatMap(d => [new Date(d.start), new Date(d.end)]);
         const minDate = new Date(Math.min(...allDates));
+        const maxDate = new Date(Math.max(...allDates));
+        // Add padding
+        minDate.setDate(minDate.getDate() - 7);
+        maxDate.setDate(maxDate.getDate() + 14);
 
-        const daysBetween = (a, b) => Math.max(1, Math.round((b - a) / 86400000));
+        const totalDays = Math.ceil((maxDate - minDate) / 86400000);
+        const px = this._ganttPxPerDay;
+        const totalWidth = totalDays * px;
 
-        const labels = ganttData.map(d => d.task);
-        const starts = ganttData.map(d => daysBetween(minDate, new Date(d.start)));
-        const durations = ganttData.map(d => daysBetween(new Date(d.start), new Date(d.end)));
-        const colors = ganttData.map(d => d.critical ? '#DC2626' : '#1976D2');
+        // ── Group by WBS ──
+        const groups = {};
+        const groupOrder = [];
+        ganttData.forEach(d => {
+            const key = d.wbs || '01';
+            if (!groups[key]) {
+                groups[key] = { code: key, name: d.wbs_name || 'General', tasks: [] };
+                groupOrder.push(key);
+            }
+            groups[key].tasks.push(d);
+        });
 
-        // Set height based on data
-        canvas.parentElement.style.height = `${Math.max(400, ganttData.length * 26)}px`;
+        // Build flat row list: [group_header, task, task, ..., group_header, task, ...]
+        const rows = [];
+        groupOrder.forEach(key => {
+            const g = groups[key];
+            rows.push({ type: 'group', wbs: key, name: g.name, count: g.tasks.length });
+            g.tasks.forEach(t => rows.push({ type: 'task', wbs: key, data: t }));
+        });
 
-        this._charts.gantt = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [
-                    {
-                        label: 'Offset',
-                        data: starts,
-                        backgroundColor: 'transparent',
-                        borderWidth: 0,
-                        barPercentage: 0.6,
-                    },
-                    {
-                        label: 'Duration',
-                        data: durations,
-                        backgroundColor: colors,
-                        borderRadius: 3,
-                        barPercentage: 0.6,
-                    }
-                ]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => {
-                                if (ctx.datasetIndex === 0) return '';
-                                const d = ganttData[ctx.dataIndex];
-                                return `${d.start} → ${d.end} (${d.critical ? 'Critical' : d.float + 'd float'})`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                        title: { display: true, text: 'Working Days' },
-                        grid: { color: '#F0F2F5' },
-                    },
-                    y: {
-                        stacked: true,
-                        grid: { display: false },
-                        ticks: { font: { size: 10 } },
-                    }
-                }
+        // ── Render left table ──
+        const table = document.getElementById('ganttTable');
+        const daysBetween = (a, b) => Math.ceil((b - a) / 86400000);
+        const fmtDate = (s) => { const d = new Date(s); return `${d.getMonth()+1}/${d.getDate()}`; };
+
+        let tableHTML = `<div class="gantt-table-header">
+            <div class="gantt-th-id">ID</div>
+            <div class="gantt-th-name">Activity</div>
+            <div class="gantt-th-dur">Days</div>
+            <div class="gantt-th-start">Start</div>
+            <div class="gantt-th-end">Finish</div>
+        </div>`;
+
+        rows.forEach((r, i) => {
+            if (r.type === 'group') {
+                const collapsed = this._ganttCollapsed[r.wbs] ? 'collapsed' : '';
+                tableHTML += `<div class="gantt-group-row ${collapsed}" data-wbs="${r.wbs}" onclick="DABO.ganttToggleGroup('${r.wbs}')">
+                    <span class="gantt-group-chevron">&#9660;</span>
+                    ${this._esc(r.name)}
+                    <span class="gantt-group-count">${r.count} activities</span>
+                </div>`;
+            } else {
+                const t = r.data;
+                const hidden = this._ganttCollapsed[r.wbs] ? 'hidden-row' : '';
+                const critClass = t.critical ? 'critical-row' : '';
+                const msClass = t.milestone ? 'milestone-row' : '';
+                tableHTML += `<div class="gantt-task-row ${hidden} ${critClass} ${msClass}" data-wbs="${r.wbs}" data-id="${t.id}">
+                    <div class="gantt-td-id">${t.id}</div>
+                    <div class="gantt-td-name">${this._esc(t.task)}</div>
+                    <div class="gantt-td-dur">${t.duration || 0}</div>
+                    <div class="gantt-td-start">${fmtDate(t.start)}</div>
+                    <div class="gantt-td-end">${fmtDate(t.end)}</div>
+                </div>`;
             }
         });
+        table.innerHTML = tableHTML;
+
+        // ── Render timeline header (months + weeks) ──
+        const header = document.getElementById('ganttTimelineHeader');
+        let monthsHTML = '';
+        let weeksHTML = '';
+        let cur = new Date(minDate);
+        let lastMonth = '';
+
+        // Month row
+        const months = [];
+        const tmpD = new Date(minDate);
+        while (tmpD <= maxDate) {
+            const label = tmpD.toLocaleString('default', { month: 'short', year: '2-digit' });
+            if (label !== lastMonth) {
+                if (months.length) months[months.length-1].days = daysBetween(months[months.length-1].start, new Date(tmpD));
+                months.push({ label, start: new Date(tmpD), days: 0 });
+                lastMonth = label;
+            }
+            tmpD.setDate(tmpD.getDate() + 1);
+        }
+        if (months.length) months[months.length-1].days = daysBetween(months[months.length-1].start, maxDate);
+
+        months.forEach(m => {
+            monthsHTML += `<div class="gantt-month-header" style="width:${m.days * px}px">${m.label}</div>`;
+        });
+
+        // Week row
+        const wkStart = new Date(minDate);
+        wkStart.setDate(wkStart.getDate() - wkStart.getDay()); // align to Sunday
+        while (wkStart <= maxDate) {
+            const wkEnd = new Date(wkStart); wkEnd.setDate(wkEnd.getDate() + 7);
+            const w = Math.min(7, daysBetween(wkStart < minDate ? minDate : wkStart, wkEnd > maxDate ? maxDate : wkEnd));
+            if (w > 0) {
+                const label = `${wkStart.getMonth()+1}/${wkStart.getDate()}`;
+                weeksHTML += `<div class="gantt-week-header" style="width:${w * px}px">${label}</div>`;
+            }
+            wkStart.setDate(wkStart.getDate() + 7);
+        }
+
+        header.innerHTML = `<div style="display:flex;flex-direction:column;min-width:${totalWidth}px">
+            <div style="display:flex">${monthsHTML}</div>
+            <div style="display:flex">${weeksHTML}</div>
+        </div>`;
+
+        // ── Render timeline body (bars + grid) ──
+        const body = document.getElementById('ganttTimelineBody');
+        let bodyHTML = '';
+
+        // Grid lines (month boundaries)
+        let gridHTML = '';
+        months.forEach(m => {
+            const x = daysBetween(minDate, m.start) * px;
+            gridHTML += `<div class="gantt-gridline month-line" style="left:${x}px"></div>`;
+        });
+
+        // Today line
+        const today = new Date();
+        if (today >= minDate && today <= maxDate) {
+            const todayX = daysBetween(minDate, today) * px;
+            gridHTML += `<div class="gantt-today" style="left:${todayX}px"></div>`;
+        }
+
+        // Activity lookup for dependency arrows
+        const actMap = {};
+        ganttData.forEach(d => { actMap[d.id] = d; });
+
+        // Render rows
+        let rowIdx = 0;
+        const barPositions = {}; // id → {x, y, w}
+
+        rows.forEach((r) => {
+            if (r.type === 'group') {
+                // Summary bar for group
+                const tasks = groups[r.wbs].tasks;
+                const gStart = new Date(Math.min(...tasks.map(t => new Date(t.start))));
+                const gEnd = new Date(Math.max(...tasks.map(t => new Date(t.end))));
+                const x1 = daysBetween(minDate, gStart) * px;
+                const x2 = daysBetween(minDate, gEnd) * px;
+                const collapsed = this._ganttCollapsed[r.wbs] ? 'hidden-row' : '';
+                bodyHTML += `<div class="gantt-tl-group" data-wbs="${r.wbs}">
+                    <div class="gantt-summary-bar" style="left:${x1}px;width:${Math.max(4, x2-x1)}px"></div>
+                    <div class="gantt-summary-cap" style="left:${x1}px"></div>
+                    <div class="gantt-summary-cap" style="left:${x2 - 6}px"></div>
+                </div>`;
+                rowIdx++;
+            } else {
+                const t = r.data;
+                const hidden = this._ganttCollapsed[r.wbs] ? 'hidden-row' : '';
+                const x = daysBetween(minDate, new Date(t.start)) * px;
+                const w = Math.max(4, daysBetween(new Date(t.start), new Date(t.end)) * px);
+                const barClass = t.milestone ? 'bar-milestone' : (t.critical ? 'bar-critical' : 'bar-normal');
+
+                let barHTML = '';
+                if (t.milestone) {
+                    barHTML = `<div class="gantt-bar ${barClass}" style="left:${x - 7}px" title="${t.task}"></div>`;
+                } else {
+                    const floatLabel = t.critical ? '' : `<span class="gantt-bar-label">${t.float}d</span>`;
+                    barHTML = `<div class="gantt-bar ${barClass}" style="left:${x}px;width:${w}px" title="${t.task}: ${t.start} → ${t.end}">${floatLabel}</div>`;
+                    // Float extension bar
+                    if (!t.critical && t.float > 0) {
+                        barHTML += `<div class="gantt-float" style="left:${x + w}px;width:${t.float * px}px"></div>`;
+                    }
+                }
+
+                bodyHTML += `<div class="gantt-tl-row ${hidden}" data-wbs="${r.wbs}" data-id="${t.id}">${barHTML}</div>`;
+
+                barPositions[t.id] = { x: x + w, y: rowIdx * 32 + 16, xStart: x };
+                rowIdx++;
+            }
+        });
+
+        body.innerHTML = `<div style="position:relative;min-width:${totalWidth}px;min-height:${rowIdx * 32}px">
+            ${gridHTML}${bodyHTML}
+        </div>`;
+
+        // ── Draw dependency arrows (SVG) ──
+        const svg = document.getElementById('ganttSvg');
+        svg.setAttribute('width', totalWidth);
+        svg.setAttribute('height', rowIdx * 32);
+        svg.style.width = totalWidth + 'px';
+        svg.style.height = (rowIdx * 32) + 'px';
+
+        let arrowsSVG = '';
+        ganttData.forEach(t => {
+            if (!t.predecessors) return;
+            t.predecessors.forEach(p => {
+                const from = barPositions[p.id];
+                const to = barPositions[t.id];
+                if (!from || !to) return;
+
+                // FS relationship: line from end of predecessor to start of successor
+                const x1 = from.x + 2;
+                const y1 = from.y;
+                const x2 = to.xStart - 2;
+                const y2 = to.y;
+
+                // L-shaped path
+                const midX = x2 - 8;
+                const path = `M${x1},${y1} L${midX},${y1} L${midX},${y2} L${x2},${y2}`;
+                arrowsSVG += `<path d="${path}" class="gantt-dep-line"/>`;
+                // Arrowhead
+                arrowsSVG += `<polygon points="${x2},${y2} ${x2-5},${y2-3} ${x2-5},${y2+3}" class="gantt-dep-arrow"/>`;
+            });
+        });
+        svg.innerHTML = arrowsSVG;
+
+        // ── Sync scroll between table and timeline ──
+        const tableEl = document.getElementById('ganttTable');
+        const timeWrap = document.getElementById('ganttTimelineWrap');
+        const tlBody = body.firstElementChild;
+
+        tableEl.addEventListener('scroll', function() {
+            timeWrap.scrollTop = tableEl.scrollTop;
+        });
+        timeWrap.addEventListener('scroll', function() {
+            tableEl.scrollTop = timeWrap.scrollTop;
+        });
+
+        // Compute avg float for metric
+        const nonMs = ganttData.filter(d => !d.milestone);
+        if (nonMs.length) {
+            const avgFloat = Math.round(nonMs.reduce((s, d) => s + (d.float || 0), 0) / nonMs.length);
+            const el = document.getElementById('schedFloat');
+            if (el) el.textContent = avgFloat + 'd';
+        }
+    },
+
+    ganttToggleGroup(wbs) {
+        this._ganttCollapsed[wbs] = !this._ganttCollapsed[wbs];
+        const collapsed = this._ganttCollapsed[wbs];
+
+        // Toggle left table rows
+        document.querySelectorAll(`.gantt-task-row[data-wbs="${wbs}"]`).forEach(el => {
+            el.classList.toggle('hidden-row', collapsed);
+        });
+        // Toggle right timeline rows
+        document.querySelectorAll(`.gantt-tl-row[data-wbs="${wbs}"]`).forEach(el => {
+            el.classList.toggle('hidden-row', collapsed);
+        });
+        // Toggle group header chevron
+        document.querySelectorAll(`.gantt-group-row[data-wbs="${wbs}"]`).forEach(el => {
+            el.classList.toggle('collapsed', collapsed);
+        });
+    },
+
+    ganttExpandAll() {
+        this._ganttCollapsed = {};
+        document.querySelectorAll('.gantt-task-row, .gantt-tl-row').forEach(el => el.classList.remove('hidden-row'));
+        document.querySelectorAll('.gantt-group-row').forEach(el => el.classList.remove('collapsed'));
+    },
+
+    ganttCollapseAll() {
+        document.querySelectorAll('.gantt-group-row').forEach(el => {
+            const wbs = el.dataset.wbs;
+            this._ganttCollapsed[wbs] = true;
+            el.classList.add('collapsed');
+        });
+        document.querySelectorAll('.gantt-task-row, .gantt-tl-row').forEach(el => el.classList.add('hidden-row'));
+    },
+
+    ganttZoom(dir) {
+        if (dir === 'in') this._ganttPxPerDay = Math.min(40, this._ganttPxPerDay + 4);
+        else this._ganttPxPerDay = Math.max(4, this._ganttPxPerDay - 4);
+
+        const label = document.getElementById('ganttZoomLabel');
+        if (this._ganttPxPerDay >= 28) label.textContent = 'Days';
+        else if (this._ganttPxPerDay >= 14) label.textContent = 'Weeks';
+        else label.textContent = 'Months';
+
+        // Re-render with current data
+        if (this._scheduleData && this._scheduleData.gantt_data) {
+            this._buildGanttChart(this._scheduleData.gantt_data);
+        }
     },
 
     downloadScheduleExcel() {

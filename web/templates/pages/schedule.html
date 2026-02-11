@@ -1,4 +1,4 @@
-<div class="p-8 max-w-6xl mx-auto">
+<div class="p-8 max-w-full mx-auto">
     <div class="page-header">
         <h1 class="page-title">Schedule</h1>
     </div>
@@ -18,11 +18,11 @@
                 </div>
                 <div>
                     <label class="form-label">Building Type</label>
-                    <div class="text-sm text-gray-600 mt-2" id="schedBuildType">—</div>
+                    <div class="text-sm text-gray-600 mt-2" id="schedBuildType">&mdash;</div>
                 </div>
                 <div>
                     <label class="form-label">Square Feet</label>
-                    <div class="text-sm text-gray-600 mt-2" id="schedSF">—</div>
+                    <div class="text-sm text-gray-600 mt-2" id="schedSF">&mdash;</div>
                 </div>
             </div>
             <button onclick="DABO.generateSchedule()" class="btn-primary" id="schedBtn">
@@ -39,7 +39,7 @@
         <!-- Schedule results -->
         <div id="schedResults" class="hidden">
             <!-- Metrics -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <div class="metric-card">
                     <div class="metric-value" id="schedActivities">0</div>
                     <div class="metric-label">Activities</div>
@@ -56,26 +56,41 @@
                     <div class="metric-value" id="schedMilestones">0</div>
                     <div class="metric-label">Milestones</div>
                 </div>
-            </div>
-
-            <!-- Gantt chart -->
-            <div class="card mb-6">
-                <h2 class="section-title">Gantt Chart</h2>
-                <div class="overflow-x-auto" id="ganttContainer" style="min-height: 400px;">
-                    <canvas id="ganttChart"></canvas>
+                <div class="metric-card">
+                    <div class="metric-value" id="schedFloat">&mdash;</div>
+                    <div class="metric-label">Avg Float</div>
                 </div>
             </div>
 
-            <!-- Critical path -->
+            <!-- Gantt chart — full width -->
+            <div class="card mb-6" style="padding:0; overflow:hidden;">
+                <div class="gantt-toolbar">
+                    <h2 class="section-title mb-0" style="padding:0;">Gantt Chart</h2>
+                    <div class="gantt-toolbar-right">
+                        <button class="gantt-zoom-btn" onclick="DABO.ganttZoom('out')" title="Zoom out">-</button>
+                        <span class="gantt-zoom-label" id="ganttZoomLabel">Weeks</span>
+                        <button class="gantt-zoom-btn" onclick="DABO.ganttZoom('in')" title="Zoom in">+</button>
+                        <button class="gantt-toggle-btn" onclick="DABO.ganttExpandAll()" title="Expand all">Expand All</button>
+                        <button class="gantt-toggle-btn" onclick="DABO.ganttCollapseAll()" title="Collapse all">Collapse All</button>
+                    </div>
+                </div>
+                <div class="gantt-wrapper" id="ganttWrapper">
+                    <!-- Left: task list -->
+                    <div class="gantt-table" id="ganttTable"></div>
+                    <!-- Right: timeline bars -->
+                    <div class="gantt-timeline-wrap" id="ganttTimelineWrap">
+                        <div class="gantt-timeline-header" id="ganttTimelineHeader"></div>
+                        <div class="gantt-timeline-body" id="ganttTimelineBody">
+                            <svg class="gantt-svg" id="ganttSvg"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Critical path list -->
             <div class="card mb-6">
                 <h2 class="section-title">Critical Path</h2>
                 <div id="criticalPath" class="space-y-1"></div>
-            </div>
-
-            <!-- WBS -->
-            <div class="card mb-6">
-                <h2 class="section-title">WBS Structure</h2>
-                <pre id="wbsText" class="bg-gray-50 p-4 rounded-lg text-xs font-mono overflow-x-auto max-h-80"></pre>
             </div>
 
             <!-- Download -->

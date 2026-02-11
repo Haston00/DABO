@@ -370,6 +370,20 @@ def generate_schedule(pid):
         if "error" in result:
             return jsonify(result), 400
 
+        # WBS division names for Gantt grouping
+        _WBS_NAMES = {
+            "01": "General Requirements",
+            "02": "Site Construction",
+            "03": "Concrete",
+            "05": "Metals / Structural Steel",
+            "07": "Thermal & Moisture Protection",
+            "08": "Openings",
+            "09": "Finishes",
+            "10": "Specialties",
+            "15": "Mechanical",
+            "16": "Electrical",
+        }
+
         # Serialize activities for Gantt chart
         gantt_data = []
         activities = result.get("activities_data", [])
@@ -377,20 +391,26 @@ def generate_schedule(pid):
             from scheduling.cpm_engine import day_to_date
             from datetime import timedelta
             for act in activities:
-                if act.is_milestone:
-                    continue
                 s = day_to_date(act.early_start, start_dt)
                 f = day_to_date(act.early_finish, start_dt)
                 if f <= s:
                     f = s + timedelta(days=1)
+                wbs_code = act.wbs.split(".")[0] if act.wbs else "01"
                 gantt_data.append({
+                    "id": act.activity_id,
                     "task": act.activity_name,
                     "start": s.strftime("%Y-%m-%d"),
                     "end": f.strftime("%Y-%m-%d"),
-                    "resource": act.wbs.split(".")[0] if act.wbs else "General",
+                    "duration": act.duration,
+                    "wbs": wbs_code,
+                    "wbs_name": _WBS_NAMES.get(wbs_code, "General"),
                     "critical": act.total_float == 0,
                     "float": act.total_float,
-                    "id": act.activity_id,
+                    "milestone": act.is_milestone,
+                    "predecessors": [
+                        {"id": p["activity_id"], "type": p.get("rel_type", "FS"), "lag": p.get("lag", 0)}
+                        for p in act.predecessors
+                    ],
                 })
 
         return jsonify({

@@ -84,7 +84,7 @@
     }
     .unmute-hint.hidden { display: none; }
 
-    /* Enter button */
+    /* Enter button — hidden for 8s so you watch the hill run */
     .enter-btn {
         display: inline-block;
         margin-top: 2rem;
@@ -102,7 +102,9 @@
         box-shadow:
             0 4px 20px rgba(255,90,25,0.4),
             0 0 40px rgba(255,90,25,0.1);
-        animation: pulse 2.5s ease-in-out infinite;
+        opacity: 0;
+        pointer-events: none;
+        animation: btnReveal 1s ease-out 8s forwards;
     }
     .enter-btn:hover {
         transform: translateY(-3px) scale(1.05);
@@ -128,6 +130,10 @@
     @keyframes pulse {
         0%, 100% { box-shadow: 0 4px 20px rgba(255,90,25,0.4), 0 0 40px rgba(255,90,25,0.1); }
         50% { box-shadow: 0 4px 30px rgba(255,90,25,0.6), 0 0 60px rgba(255,90,25,0.3); }
+    }
+    @keyframes btnReveal {
+        from { opacity: 0; transform: translateY(20px); pointer-events: none; }
+        to { opacity: 1; transform: translateY(0); pointer-events: auto; }
     }
 </style>
 {% endblock %}
@@ -193,6 +199,15 @@
             }
         });
     }
+
+    // After 9s, enable pulse animation + pointer events on ENTER button
+    setTimeout(function() {
+        var btn = document.getElementById('enterBtn');
+        if (btn) {
+            btn.style.pointerEvents = 'auto';
+            btn.style.animation = 'pulse 2.5s ease-in-out infinite';
+        }
+    }, 9000);
 
     // Unmute on first click — gives full stadium audio (cannon, crowd, Tiger Rag)
     document.addEventListener('click', function() {

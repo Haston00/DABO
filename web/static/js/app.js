@@ -642,10 +642,14 @@ const DABO = {
         try {
             const data = await this.api(`/api/projects/${pid}/review`, { method: 'POST' });
             this._reviewData = data;
+            // Persist so RFI page can access it
+            sessionStorage.setItem('dabo_review_data', JSON.stringify(data));
 
             document.getElementById('reviewSheets').textContent = data.sheets_analyzed || 0;
             document.getElementById('reviewConflicts').textContent = data.total_conflicts || 0;
             document.getElementById('reviewDiscs').textContent = data.disciplines || 0;
+            document.getElementById('reviewRulesChecked').textContent = data.rules_checked || 0;
+            document.getElementById('reviewRulesTriggered').textContent = data.rules_triggered || 0;
 
             document.getElementById('reviewResults').classList.remove('hidden');
 
@@ -657,7 +661,7 @@ const DABO = {
                 document.getElementById('noConflicts').classList.remove('hidden');
             }
 
-            this.toast('Plan review complete', 'success');
+            this.toast(`Plan review complete — ${data.total_conflicts} conflicts found`, 'success');
         } catch (e) {
             this.toast(`Review failed: ${e.message}`, 'error');
         }
@@ -699,20 +703,29 @@ const DABO = {
         const container = document.getElementById('conflictList');
         if (!container) return;
 
-        container.innerHTML = conflicts.map((c, i) => `
+        container.innerHTML = conflicts.map((c, i) => {
+            const sheets = (c.sheets_involved || c.sheets || []).join(', ');
+            const discs = (c.disciplines || []).join(', ');
+            const evidence = (c.evidence || []);
+            const action = c.suggested_action || '';
+
+            return `
             <div class="conflict-card" id="conflict-${i}" onclick="DABO.toggleConflict(${i})">
                 <div class="conflict-header">
                     <span class="badge badge-${(c.severity || 'info').toLowerCase()}">${c.severity || 'INFO'}</span>
-                    <span>${this._esc(c.rule_id || '')} — ${this._esc(c.description || '')}</span>
+                    <span class="font-semibold">${this._esc(c.rule_name || c.rule_id || '')}</span>
                     <span class="conflict-chevron">&#9654;</span>
                 </div>
                 <div class="conflict-body">
-                    <p><strong>Sheets:</strong> ${this._esc((c.sheets || []).join(', '))}</p>
-                    <p><strong>Category:</strong> ${this._esc(c.category || 'N/A')}</p>
-                    <p><strong>Details:</strong> ${this._esc(c.details || 'N/A')}</p>
+                    <p class="mb-2"><strong>Issue:</strong> ${this._esc(c.description || '')}</p>
+                    ${sheets ? `<p class="mb-1"><strong>Sheets:</strong> <span class="font-mono">${this._esc(sheets)}</span></p>` : ''}
+                    ${discs ? `<p class="mb-1"><strong>Disciplines:</strong> ${this._esc(discs)}</p>` : ''}
+                    <p class="mb-1"><strong>Category:</strong> ${this._esc(c.category || 'N/A')}</p>
+                    ${evidence.length ? `<div class="mb-1"><strong>Evidence:</strong><ul class="ml-4 mt-1 list-disc text-sm text-gray-600">${evidence.map(e => `<li>${this._esc(e)}</li>`).join('')}</ul></div>` : ''}
+                    ${action ? `<p class="mt-2 text-sm"><strong>Suggested Action:</strong> <span class="text-navy">${this._esc(action)}</span></p>` : ''}
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     },
 
     toggleConflict(idOrIndex) {
@@ -728,6 +741,14 @@ const DABO = {
     async generateRFIs() {
         const pid = this.getProjectId();
         if (!pid) return;
+
+        // Restore review data from session if not in memory
+        if (!this._reviewData) {
+            const stored = sessionStorage.getItem('dabo_review_data');
+            if (stored) {
+                try { this._reviewData = JSON.parse(stored); } catch(e) {}
+            }
+        }
 
         if (!this._reviewData || !this._reviewData.conflicts || !this._reviewData.conflicts.length) {
             this.toast('No review results with conflicts. Run Plan Review first.', 'error');
@@ -1333,6 +1354,13 @@ const DABO = {
             }
         } catch (e) { /* ignore */ }
 
+        // Restore review data from session if not in memory
+        if (!this._reviewData) {
+            const stored = sessionStorage.getItem('dabo_review_data');
+            if (stored) {
+                try { this._reviewData = JSON.parse(stored); } catch(e) {}
+            }
+        }
         // Render conflict feedback if review data exists
         if (this._reviewData && this._reviewData.conflicts) {
             this._renderFeedbackConflicts(this._reviewData.conflicts);
@@ -1351,7 +1379,7 @@ const DABO = {
                     <span class="conflict-chevron">&#9654;</span>
                 </div>
                 <div class="conflict-body">
-                    <p class="mb-3"><strong>Sheets:</strong> ${this._esc((c.sheets || []).join(', '))}</p>
+                    <p class="mb-3"><strong>Sheets:</strong> ${this._esc((c.sheets_involved || c.sheets || []).join(', '))}</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="form-label">Assessment</label>

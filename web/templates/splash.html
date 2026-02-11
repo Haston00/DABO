@@ -20,19 +20,19 @@
     .video-bg iframe {
         position: absolute;
         top: 50%; left: 50%;
-        width: 180vw; height: 180vh;
+        width: 200vw; height: 200vh;
         transform: translate(-50%, -50%);
         pointer-events: none;
     }
 
-    /* Dark overlay */
+    /* Dark overlay — lighter so you can really see the hill run */
     .splash-overlay {
         position: fixed; inset: 0; z-index: 1;
         background: linear-gradient(
             135deg,
-            rgba(0,27,43,0.85) 0%,
-            rgba(0,38,58,0.75) 40%,
-            rgba(0,38,58,0.80) 100%
+            rgba(0,27,43,0.70) 0%,
+            rgba(0,38,58,0.55) 40%,
+            rgba(0,38,58,0.65) 100%
         );
     }
 
@@ -51,9 +51,9 @@
         letter-spacing: -4px;
         line-height: 1;
         text-shadow:
-            0 0 60px rgba(255,90,25,0.4),
-            0 0 120px rgba(255,90,25,0.2),
-            0 4px 20px rgba(0,0,0,0.5);
+            0 0 80px rgba(255,90,25,0.5),
+            0 0 160px rgba(255,90,25,0.25),
+            0 4px 20px rgba(0,0,0,0.6);
     }
 
     .splash-tagline {
@@ -73,16 +73,27 @@
         letter-spacing: 2px;
     }
 
+    /* Unmute hint */
+    .unmute-hint {
+        margin-top: 1.5rem;
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 1px;
+        opacity: 0;
+        animation: fadeUp 1s ease-out 1.5s forwards;
+    }
+    .unmute-hint.hidden { display: none; }
+
     /* Enter button */
     .enter-btn {
         display: inline-block;
-        margin-top: 3rem;
-        padding: 1rem 3.5rem;
+        margin-top: 2rem;
+        padding: 1.1rem 4rem;
         background: linear-gradient(135deg, #FF5A19 0%, #FF7A40 100%);
         color: white;
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         font-weight: 800;
-        letter-spacing: 4px;
+        letter-spacing: 5px;
         text-transform: uppercase;
         border: none;
         border-radius: 8px;
@@ -94,10 +105,10 @@
         animation: pulse 2.5s ease-in-out infinite;
     }
     .enter-btn:hover {
-        transform: translateY(-3px) scale(1.03);
+        transform: translateY(-3px) scale(1.05);
         box-shadow:
-            0 8px 30px rgba(255,90,25,0.5),
-            0 0 60px rgba(255,90,25,0.2);
+            0 8px 35px rgba(255,90,25,0.6),
+            0 0 70px rgba(255,90,25,0.25);
     }
     .enter-btn:active {
         transform: translateY(0) scale(0.98);
@@ -106,7 +117,7 @@
     /* Fade-out transition */
     .splash-wrap.fade-out {
         opacity: 0;
-        transition: opacity 0.8s ease;
+        transition: opacity 1s ease;
         pointer-events: none;
     }
 
@@ -116,22 +127,16 @@
     }
     @keyframes pulse {
         0%, 100% { box-shadow: 0 4px 20px rgba(255,90,25,0.4), 0 0 40px rgba(255,90,25,0.1); }
-        50% { box-shadow: 0 4px 30px rgba(255,90,25,0.6), 0 0 60px rgba(255,90,25,0.25); }
+        50% { box-shadow: 0 4px 30px rgba(255,90,25,0.6), 0 0 60px rgba(255,90,25,0.3); }
     }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="splash-wrap" id="splashWrap">
-    <!-- YouTube video background: Clemson running down the hill -->
+    <!-- YouTube background: Clemson Running Down the Hill — The Most Exciting 25 Seconds -->
     <div class="video-bg">
-        <iframe
-            id="ytPlayer"
-            src="https://www.youtube.com/embed/F5eFMa1NbjM?autoplay=1&mute=1&loop=1&playlist=F5eFMa1NbjM&controls=0&showinfo=0&modestbranding=1&rel=0&iv_load_policy=3&playsinline=1"
-            frameborder="0"
-            allow="autoplay; encrypted-media"
-            allowfullscreen>
-        </iframe>
+        <div id="ytPlayer"></div>
     </div>
 
     <!-- Dark overlay -->
@@ -142,6 +147,7 @@
         <div class="splash-title">DABO</div>
         <div class="splash-tagline">AI-Powered Plan Review & Scheduling</div>
         <div class="splash-company">McCrory Construction</div>
+        <div class="unmute-hint" id="unmuteHint">Click anywhere for stadium audio</div>
         <button class="enter-btn" id="enterBtn" onclick="enterDashboard()">
             ENTER
         </button>
@@ -150,31 +156,76 @@
 
 <script src="{{ url_for('static', filename='js/splash.js') }}"></script>
 
-<!-- Hidden audio for Tiger Rag (plays on click) -->
-<audio id="fightSong" preload="auto">
-    <source src="https://upload.wikimedia.org/wikipedia/commons/5/55/Tiger_Rag.ogg" type="audio/ogg">
-</audio>
-
+<!-- YouTube IFrame API for background video with audio control -->
 <script>
-    // Play fight song on first interaction
-    let songStarted = false;
+    var player;
+    var unmuted = false;
+
+    // Load YouTube IFrame API
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    var firstScript = document.getElementsByTagName('script')[0];
+    firstScript.parentNode.insertBefore(tag, firstScript);
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('ytPlayer', {
+            videoId: 'z7PsvarItWQ',
+            playerVars: {
+                autoplay: 1,
+                mute: 1,
+                loop: 1,
+                playlist: 'z7PsvarItWQ',
+                controls: 0,
+                showinfo: 0,
+                modestbranding: 1,
+                rel: 0,
+                iv_load_policy: 3,
+                playsinline: 1,
+                start: 0,
+            },
+            events: {
+                onReady: function(e) {
+                    e.target.playVideo();
+                    // Style the iframe to fill the screen
+                    var iframe = document.querySelector('#ytPlayer');
+                    iframe.style.cssText = 'position:absolute;top:50%;left:50%;width:200vw;height:200vh;transform:translate(-50%,-50%);pointer-events:none;';
+                },
+            }
+        });
+    }
+
+    // Unmute on first click — gives full stadium audio (cannon, crowd, Tiger Rag)
     document.addEventListener('click', function() {
-        if (!songStarted) {
-            const audio = document.getElementById('fightSong');
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
-            songStarted = true;
+        if (!unmuted && player && player.unMute) {
+            player.unMute();
+            player.setVolume(80);
+            unmuted = true;
+            var hint = document.getElementById('unmuteHint');
+            if (hint) hint.classList.add('hidden');
         }
-    }, { once: false });
+    });
 
     function enterDashboard() {
-        const wrap = document.getElementById('splashWrap');
-        const audio = document.getElementById('fightSong');
+        var wrap = document.getElementById('splashWrap');
         wrap.classList.add('fade-out');
-        audio.pause();
-        setTimeout(() => {
+
+        // Fade out the audio
+        if (player && player.setVolume) {
+            var vol = player.getVolume();
+            var fade = setInterval(function() {
+                vol -= 10;
+                if (vol <= 0) {
+                    clearInterval(fade);
+                    player.mute();
+                } else {
+                    player.setVolume(vol);
+                }
+            }, 80);
+        }
+
+        setTimeout(function() {
             window.location.href = '/dashboard';
-        }, 800);
+        }, 1000);
     }
 </script>
 {% endblock %}

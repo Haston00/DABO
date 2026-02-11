@@ -1,8 +1,12 @@
 """
-Seed a test commercial project for McCrory Construction.
+Seed demo projects for McCrory Construction.
 Run once: python seed_test_project.py
+
+Creates 3 projects with sheets, files, processing runs, and feedback
+so every dashboard tool has data to play with.
 """
 import sys
+import random
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -21,7 +25,28 @@ def seed():
         conn.close()
         return
 
-    # Create project
+    # ── Project 1: McCrory Office Tower (original) ────────
+    pid1 = _seed_office_tower(conn)
+
+    # ── Project 2: Southpark Medical Center ────────────────
+    pid2 = _seed_medical_center(conn)
+
+    # ── Project 3: Ballantyne Mixed-Use ────────────────────
+    pid3 = _seed_mixed_use(conn)
+
+    conn.commit()
+    conn.close()
+
+    print(f"\nDemo data seeded:")
+    print(f"  1. McCrory Office Tower (ID #{pid1}) — 47 sheets, 10 disciplines")
+    print(f"  2. Southpark Medical Center (ID #{pid2}) — 62 sheets, 10 disciplines")
+    print(f"  3. Ballantyne Mixed-Use (ID #{pid3}) — 38 sheets, 9 disciplines")
+    print(f"  Total: 147 sheets across 3 projects")
+    print(f"  Plus: mock files, processing runs, feedback history\n")
+
+
+def _seed_office_tower(conn):
+    """Original 47-sheet commercial office project."""
     cursor = conn.execute(
         """INSERT INTO projects (name, building_type, square_feet, stories, notes)
            VALUES (?, ?, ?, ?, ?)""",
@@ -30,18 +55,14 @@ def seed():
             "office",
             85000,
             4,
-            "Test commercial project. PM: Timmy McClure. "
             "4-story Class A office, structural steel frame, curtain wall envelope. "
-            "McCrory Construction — Charlotte, NC.",
+            "PM: Timmy McClure. McCrory Construction — Charlotte, NC.",
         ),
     )
     pid = cursor.lastrowid
-
-    # Create project directory
     proj_dir = Path(PROJECTS_DIR) / str(pid)
     proj_dir.mkdir(parents=True, exist_ok=True)
 
-    # Seed some synthetic classified sheets
     sheets = [
         ("G-001", "Cover Sheet & Drawing Index", "GEN", 1),
         ("G-002", "General Notes & Abbreviations", "GEN", 2),
@@ -92,31 +113,288 @@ def seed():
         ("T-102", "Telecom/Data Plans — Levels 2-4", "TECH", 47),
     ]
 
-    for sheet_id, sheet_name, discipline, page_num in sheets:
-        conn.execute(
-            """INSERT INTO sheets
-               (project_id, page_number, sheet_id, sheet_name, discipline, confidence)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (pid, page_num, sheet_id, sheet_name, discipline, 0.95),
-        )
+    _insert_sheets(conn, pid, sheets, conf_range=(0.88, 0.99))
 
-    # Record a processing run
+    # Mock uploaded files
+    _insert_files(conn, pid, [
+        ("McCrory_Office_Tower_Arch.pdf", "drawing", 14, "processed"),
+        ("McCrory_Office_Tower_Struct.pdf", "drawing", 8, "processed"),
+        ("McCrory_Office_Tower_MEP.pdf", "drawing", 17, "processed"),
+        ("McCrory_Office_Tower_FP_FA.pdf", "drawing", 6, "processed"),
+        ("McCrory_Office_Tower_Civil.pdf", "drawing", 2, "processed"),
+    ])
+
+    # Processing runs
     conn.execute(
         """INSERT INTO processing_runs
            (project_id, run_type, files_processed, sheets_found, status, notes)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        (pid, "ingestion", 1, len(sheets), "complete",
-         "Test data — 47-sheet commercial office drawing set"),
+        (pid, "ingestion", 5, 47, "complete",
+         "Full 47-sheet commercial office drawing set — 5 PDF packages"),
+    )
+    conn.execute(
+        """INSERT INTO processing_runs
+           (project_id, run_type, files_processed, sheets_found, conflicts_found, status, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (pid, "review", 5, 47, 12, "complete",
+         "Cross-discipline review — 12 conflicts detected across 8 rule categories"),
     )
 
-    conn.commit()
-    conn.close()
+    # Feedback history (makes the feedback/metrics page interesting)
+    _insert_feedback(conn, pid, [
+        ("CR-001", "confirm", "CRITICAL", "CRITICAL", "Beam depth conflict confirmed — 24\" W-beam vs 10' ceiling"),
+        ("CR-005", "downgrade", "MAJOR", "MINOR", "Duct routing has clearance, just tight. Not a real conflict."),
+        ("CR-008", "dismiss", "MINOR", "INFO", "Panel location works fine — field verified"),
+        ("CR-012", "confirm", "MAJOR", "MAJOR", "Fire rating mismatch is real — need architect response"),
+        ("CR-003", "confirm", "CRITICAL", "CRITICAL", "Column grid offset confirmed between S-101 and A-101"),
+        ("CR-015", "downgrade", "MAJOR", "MINOR", "Plumbing chase size adequate per plumber"),
+        ("CR-022", "dismiss", "MINOR", "INFO", "Telecom pathway cleared with IT consultant"),
+    ])
 
-    print(f"Test project created: McCrory Office Tower (ID #{pid})")
-    print(f"  Type: office | 85,000 SF | 4 stories")
-    print(f"  PM: Timmy McClure")
-    print(f"  Sheets: {len(sheets)} across 9 disciplines")
-    print(f"  Directory: {proj_dir}")
+    return pid
+
+
+def _seed_medical_center(conn):
+    """62-sheet medical/healthcare project — more MEP-heavy."""
+    cursor = conn.execute(
+        """INSERT INTO projects (name, building_type, square_feet, stories, notes)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            "Southpark Medical Center",
+            "healthcare",
+            120000,
+            3,
+            "3-story medical office building with outpatient surgery center. "
+            "Heavy MEP coordination. PM: Jake Reynolds. "
+            "McCrory Construction — Charlotte, NC.",
+        ),
+    )
+    pid = cursor.lastrowid
+    proj_dir = Path(PROJECTS_DIR) / str(pid)
+    proj_dir.mkdir(parents=True, exist_ok=True)
+
+    sheets = [
+        ("G-001", "Cover Sheet & Index", "GEN", 1),
+        ("G-002", "General Notes", "GEN", 2),
+        ("G-003", "Code Analysis & Life Safety", "GEN", 3),
+        ("C-101", "Site Plan", "CIV", 4),
+        ("C-102", "Grading & Drainage Plan", "CIV", 5),
+        ("C-103", "Utility Plan", "CIV", 6),
+        ("A-101", "Floor Plan — Level 1", "ARCH", 7),
+        ("A-102", "Floor Plan — Level 2", "ARCH", 8),
+        ("A-103", "Floor Plan — Level 3", "ARCH", 9),
+        ("A-201", "Exterior Elevations", "ARCH", 10),
+        ("A-202", "Interior Elevations — Surgery", "ARCH", 11),
+        ("A-301", "Building Sections", "ARCH", 12),
+        ("A-401", "Wall Sections", "ARCH", 13),
+        ("A-501", "Enlarged Plans — OR Suite", "ARCH", 14),
+        ("A-502", "Enlarged Plans — Imaging", "ARCH", 15),
+        ("A-601", "Door Schedule", "ARCH", 16),
+        ("A-701", "Finish Schedule", "ARCH", 17),
+        ("A-801", "Reflected Ceiling Plans", "ARCH", 18),
+        ("S-101", "Foundation Plan", "STR", 19),
+        ("S-102", "Framing Plan — Level 2", "STR", 20),
+        ("S-103", "Framing Plan — Level 3", "STR", 21),
+        ("S-104", "Roof Framing", "STR", 22),
+        ("S-201", "Structural Details", "STR", 23),
+        ("S-301", "Vibration Isolation Details", "STR", 24),
+        ("M-101", "HVAC Plan — Level 1", "MECH", 25),
+        ("M-102", "HVAC Plan — Level 2", "MECH", 26),
+        ("M-103", "HVAC Plan — Level 3", "MECH", 27),
+        ("M-201", "HVAC Roof Plan", "MECH", 28),
+        ("M-301", "HVAC Details", "MECH", 29),
+        ("M-401", "Medical Gas Piping — Level 1", "MECH", 30),
+        ("M-402", "Medical Gas Piping — Levels 2-3", "MECH", 31),
+        ("M-501", "Controls Diagrams", "MECH", 32),
+        ("M-601", "Equipment Schedules", "MECH", 33),
+        ("P-101", "Plumbing Plan — Level 1", "PLMB", 34),
+        ("P-102", "Plumbing Plan — Level 2", "PLMB", 35),
+        ("P-103", "Plumbing Plan — Level 3", "PLMB", 36),
+        ("P-201", "Plumbing Riser Diagrams", "PLMB", 37),
+        ("P-301", "Medical Gas Riser", "PLMB", 38),
+        ("P-401", "Plumbing Details", "PLMB", 39),
+        ("E-101", "Power Plan — Level 1", "ELEC", 40),
+        ("E-102", "Power Plan — Level 2", "ELEC", 41),
+        ("E-103", "Power Plan — Level 3", "ELEC", 42),
+        ("E-201", "Lighting Plan — Level 1", "ELEC", 43),
+        ("E-202", "Lighting Plan — Levels 2-3", "ELEC", 44),
+        ("E-301", "One-Line Diagram — Normal", "ELEC", 45),
+        ("E-302", "One-Line Diagram — Emergency", "ELEC", 46),
+        ("E-401", "Panel Schedules", "ELEC", 47),
+        ("E-501", "Generator & Transfer Switch", "ELEC", 48),
+        ("E-601", "Electrical Details", "ELEC", 49),
+        ("FP-101", "Fire Sprinkler — Level 1", "FP", 50),
+        ("FP-102", "Fire Sprinkler — Level 2", "FP", 51),
+        ("FP-103", "Fire Sprinkler — Level 3", "FP", 52),
+        ("FP-201", "Sprinkler Riser & Details", "FP", 53),
+        ("FA-101", "Fire Alarm Plan — Level 1", "FA", 54),
+        ("FA-102", "Fire Alarm Plans — Levels 2-3", "FA", 55),
+        ("FA-201", "Fire Alarm Riser", "FA", 56),
+        ("FA-301", "Nurse Call & Code Blue Layout", "FA", 57),
+        ("T-101", "Telecom Plan — Level 1", "TECH", 58),
+        ("T-102", "Telecom Plans — Levels 2-3", "TECH", 59),
+        ("T-201", "Server Room Layout", "TECH", 60),
+        ("T-301", "AV Systems — OR & Conference", "TECH", 61),
+        ("T-401", "Security Camera Layout", "TECH", 62),
+    ]
+
+    _insert_sheets(conn, pid, sheets, conf_range=(0.82, 0.98))
+
+    _insert_files(conn, pid, [
+        ("Southpark_Medical_Arch.pdf", "drawing", 12, "processed"),
+        ("Southpark_Medical_Struct.pdf", "drawing", 6, "processed"),
+        ("Southpark_Medical_Mech.pdf", "drawing", 9, "processed"),
+        ("Southpark_Medical_Plumb.pdf", "drawing", 6, "processed"),
+        ("Southpark_Medical_Elec.pdf", "drawing", 10, "processed"),
+        ("Southpark_Medical_FP_FA.pdf", "drawing", 8, "processed"),
+        ("Southpark_Medical_Tech.pdf", "drawing", 5, "processed"),
+        ("Southpark_Medical_Civil.pdf", "drawing", 3, "processed"),
+        ("Southpark_Geotech_Report.pdf", "report", 45, "processed"),
+    ])
+
+    conn.execute(
+        """INSERT INTO processing_runs
+           (project_id, run_type, files_processed, sheets_found, status, notes)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (pid, "ingestion", 9, 62, "complete",
+         "62-sheet medical office — 9 PDF packages including geotech report"),
+    )
+    conn.execute(
+        """INSERT INTO processing_runs
+           (project_id, run_type, files_processed, sheets_found, conflicts_found, status, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (pid, "review", 9, 62, 18, "complete",
+         "Heavy MEP coordination — 18 conflicts, mostly mechanical/plumbing clashes"),
+    )
+
+    _insert_feedback(conn, pid, [
+        ("CR-001", "confirm", "CRITICAL", "CRITICAL", "Beam vs ceiling in OR suite — must resolve before steel order"),
+        ("CR-005", "confirm", "MAJOR", "MAJOR", "Duct clash with sprinkler main at Level 2 corridor"),
+        ("CR-009", "downgrade", "MAJOR", "MINOR", "Medical gas routing workable with minor reroute"),
+        ("CR-014", "confirm", "CRITICAL", "CRITICAL", "Emergency generator transfer sequence incomplete"),
+        ("CR-019", "dismiss", "MINOR", "INFO", "Nurse call wiring path OK per low-voltage sub"),
+    ])
+
+    return pid
+
+
+def _seed_mixed_use(conn):
+    """38-sheet mixed-use retail/residential — smaller, tighter set."""
+    cursor = conn.execute(
+        """INSERT INTO projects (name, building_type, square_feet, stories, notes)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            "Ballantyne Mixed-Use",
+            "mixed_use",
+            52000,
+            5,
+            "5-story mixed-use: ground-floor retail, 4 floors residential above. "
+            "Wood-frame over podium slab. PM: Sarah Chen. "
+            "McCrory Construction — Charlotte, NC.",
+        ),
+    )
+    pid = cursor.lastrowid
+    proj_dir = Path(PROJECTS_DIR) / str(pid)
+    proj_dir.mkdir(parents=True, exist_ok=True)
+
+    sheets = [
+        ("G-001", "Cover Sheet & Index", "GEN", 1),
+        ("C-101", "Site Plan", "CIV", 2),
+        ("C-102", "Utility & Grading Plan", "CIV", 3),
+        ("A-101", "Floor Plan — Retail Level", "ARCH", 4),
+        ("A-102", "Floor Plan — Typical Residential", "ARCH", 5),
+        ("A-103", "Floor Plan — Level 5 & Roof", "ARCH", 6),
+        ("A-201", "Exterior Elevations", "ARCH", 7),
+        ("A-301", "Building Sections", "ARCH", 8),
+        ("A-401", "Wall Sections & Details", "ARCH", 9),
+        ("A-501", "Unit Plans — Type A, B, C", "ARCH", 10),
+        ("A-601", "Door & Window Schedules", "ARCH", 11),
+        ("A-701", "Finish Schedule", "ARCH", 12),
+        ("S-101", "Foundation & Podium Slab Plan", "STR", 13),
+        ("S-102", "Framing Plans — Levels 2-5", "STR", 14),
+        ("S-201", "Structural Details", "STR", 15),
+        ("M-101", "HVAC Plan — Retail", "MECH", 16),
+        ("M-102", "HVAC Plan — Typical Residential", "MECH", 17),
+        ("M-201", "Roof Mechanical Plan", "MECH", 18),
+        ("M-301", "HVAC Details & Schedules", "MECH", 19),
+        ("P-101", "Plumbing Plan — Retail", "PLMB", 20),
+        ("P-102", "Plumbing Plan — Typical Residential", "PLMB", 21),
+        ("P-201", "Plumbing Riser & Details", "PLMB", 22),
+        ("E-101", "Electrical Plan — Retail", "ELEC", 23),
+        ("E-102", "Electrical Plan — Typical Residential", "ELEC", 24),
+        ("E-201", "Lighting Plans", "ELEC", 25),
+        ("E-301", "One-Line Diagram", "ELEC", 26),
+        ("E-401", "Panel Schedules", "ELEC", 27),
+        ("FP-101", "Fire Sprinkler — Retail", "FP", 28),
+        ("FP-102", "Fire Sprinkler — Residential", "FP", 29),
+        ("FP-201", "Sprinkler Riser", "FP", 30),
+        ("FA-101", "Fire Alarm Plans", "FA", 31),
+        ("FA-201", "Fire Alarm Riser & Details", "FA", 32),
+        ("T-101", "Telecom & Data Plans", "TECH", 33),
+        ("L-101", "Landscape Plan", "CIV", 34),
+        ("L-201", "Landscape Details & Planting Schedule", "CIV", 35),
+        ("A-801", "Amenity Deck Plan — Level 2", "ARCH", 36),
+        ("A-901", "Parking Garage Plan", "ARCH", 37),
+        ("E-501", "EV Charging Station Layout", "ELEC", 38),
+    ]
+
+    _insert_sheets(conn, pid, sheets, conf_range=(0.85, 0.97))
+
+    _insert_files(conn, pid, [
+        ("Ballantyne_MixedUse_Full_Set.pdf", "drawing", 38, "processed"),
+        ("Ballantyne_Landscape.pdf", "drawing", 2, "processed"),
+        ("Ballantyne_Soils_Report.pdf", "report", 28, "processed"),
+    ])
+
+    conn.execute(
+        """INSERT INTO processing_runs
+           (project_id, run_type, files_processed, sheets_found, status, notes)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (pid, "ingestion", 3, 38, "complete",
+         "38-sheet mixed-use set — full drawing package + landscape + soils"),
+    )
+
+    _insert_feedback(conn, pid, [
+        ("CR-002", "confirm", "MAJOR", "MAJOR", "Podium slab penetrations not coordinated with plumbing"),
+        ("CR-010", "downgrade", "MAJOR", "MINOR", "EV charging conduit path works — just needs sleeve in podium"),
+    ])
+
+    return pid
+
+
+def _insert_sheets(conn, pid, sheets, conf_range=(0.85, 0.99)):
+    """Insert sheets with varied confidence scores."""
+    random.seed(42)  # Deterministic but varied
+    for sheet_id, sheet_name, discipline, page_num in sheets:
+        conf = round(random.uniform(*conf_range), 3)
+        conn.execute(
+            """INSERT INTO sheets
+               (project_id, page_number, sheet_id, sheet_name, discipline, confidence)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (pid, page_num, sheet_id, sheet_name, discipline, conf),
+        )
+
+
+def _insert_files(conn, pid, files):
+    """Insert mock uploaded file records."""
+    for filename, file_type, page_count, status in files:
+        conn.execute(
+            """INSERT OR IGNORE INTO project_files
+               (project_id, filename, file_type, page_count, status)
+               VALUES (?, ?, ?, ?, ?)""",
+            (pid, filename, file_type, page_count, status),
+        )
+
+
+def _insert_feedback(conn, pid, feedback_items):
+    """Insert feedback history records."""
+    for conflict_id, action, orig_sev, adj_sev, note in feedback_items:
+        conn.execute(
+            """INSERT INTO feedback
+               (project_id, conflict_id, action, original_severity, adjusted_severity, user_note)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (pid, conflict_id, action, orig_sev, adj_sev, note),
+        )
 
 
 if __name__ == "__main__":

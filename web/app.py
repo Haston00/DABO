@@ -74,12 +74,19 @@ def create_app():
 
 
 def _seed_if_empty():
-    """Auto-seed the McCrory Office Tower demo project on first run."""
+    """Auto-seed demo projects on first run or if missing."""
     from utils.db import get_conn
     conn = get_conn()
     count = conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
     conn.close()
-    if count == 0:
+    if count < 3:
+        # Wipe and re-seed to get all 3 demo projects
+        conn = get_conn()
+        for table in ["feedback", "rule_adjustments", "processing_runs",
+                       "sheets", "project_files", "projects"]:
+            conn.execute(f"DELETE FROM {table}")
+        conn.commit()
+        conn.close()
         from seed_test_project import seed
         seed()
 

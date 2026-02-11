@@ -1,0 +1,28 @@
+# DABO — AI-Powered Plan Review & Scheduling Agent
+# Core PDF
+PyMuPDF>=1.24.0
+pdfplumber>=0.11.0
+pdfminer.six>=20231228
+
+# OCR
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# Documents
+python-docx>=1.1.0
+openpyxl>=3.1.0
+
+# Data
+pandas>=2.0.0
+numpy>=1.24.0
+networkx>=3.0
+
+# AI
+anthropic>=0.40.0
+
+# Dashboard
+streamlit>=1.38.0
+plotly>=5.18.0
+
+# Utilities
+python-dateutil>=2.8.0

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+data/dabo.db
+data/projects/
+logs/
+*.log
+.env
+tests/sample_data/*.xlsx
+.streamlit/secrets.toml

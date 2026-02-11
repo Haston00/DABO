@@ -23,7 +23,7 @@ log = get_logger(__name__)
 # Severity color coding
 _FILLS = {
     "CRITICAL": PatternFill(start_color="FF4444", end_color="FF4444", fill_type="solid"),
-    "MAJOR":    PatternFill(start_color="F56600", end_color="F56600", fill_type="solid"),
+    "MAJOR":    PatternFill(start_color="F66733", end_color="F66733", fill_type="solid"),
     "MINOR":    PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid"),
     "INFO":     PatternFill(start_color="87CEEB", end_color="87CEEB", fill_type="solid"),
 }

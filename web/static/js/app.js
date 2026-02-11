@@ -1094,14 +1094,11 @@ const DABO = {
 
         body.innerHTML = `<div style="position:relative;min-width:${totalWidth}px;min-height:${rowIdx * 32}px">
             ${gridHTML}${bodyHTML}
+            <svg class="gantt-svg" id="ganttSvg" width="${totalWidth}" height="${rowIdx * 32}" style="width:${totalWidth}px;height:${rowIdx * 32}px"></svg>
         </div>`;
 
         // ── Draw dependency arrows (SVG) ──
         const svg = document.getElementById('ganttSvg');
-        svg.setAttribute('width', totalWidth);
-        svg.setAttribute('height', rowIdx * 32);
-        svg.style.width = totalWidth + 'px';
-        svg.style.height = (rowIdx * 32) + 'px';
 
         let arrowsSVG = '';
         ganttData.forEach(t => {

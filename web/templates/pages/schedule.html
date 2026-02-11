@@ -1,0 +1,96 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <div class="page-header">
+        <h1 class="page-title">Schedule</h1>
+    </div>
+
+    <div id="scheduleNoProject" class="alert-warning" style="display:none;">
+        Select a project in the sidebar first.
+    </div>
+
+    <div id="scheduleContent" style="display:none;">
+        <!-- Generate schedule -->
+        <div class="card mb-8">
+            <h2 class="section-title">Generate CPM Schedule</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="form-label">Project Start Date</label>
+                    <input type="date" id="schedStartDate" class="form-input" value="2026-04-01">
+                </div>
+                <div>
+                    <label class="form-label">Building Type</label>
+                    <div class="text-sm text-gray-600 mt-2" id="schedBuildType">—</div>
+                </div>
+                <div>
+                    <label class="form-label">Square Feet</label>
+                    <div class="text-sm text-gray-600 mt-2" id="schedSF">—</div>
+                </div>
+            </div>
+            <button onclick="DABO.generateSchedule()" class="btn-primary" id="schedBtn">
+                Generate Schedule
+            </button>
+            <div id="schedSpinner" class="hidden mt-4">
+                <div class="flex items-center gap-3">
+                    <div class="spinner"></div>
+                    <span class="text-gray-600 text-sm">Building activities and computing CPM...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule results -->
+        <div id="schedResults" class="hidden">
+            <!-- Metrics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="metric-card">
+                    <div class="metric-value" id="schedActivities">0</div>
+                    <div class="metric-label">Activities</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="schedDuration">0</div>
+                    <div class="metric-label">Duration (days)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value text-red-600" id="schedCritical">0</div>
+                    <div class="metric-label">Critical Path</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="schedMilestones">0</div>
+                    <div class="metric-label">Milestones</div>
+                </div>
+            </div>
+
+            <!-- Gantt chart -->
+            <div class="card mb-6">
+                <h2 class="section-title">Gantt Chart</h2>
+                <div class="overflow-x-auto" id="ganttContainer" style="min-height: 400px;">
+                    <canvas id="ganttChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Critical path -->
+            <div class="card mb-6">
+                <h2 class="section-title">Critical Path</h2>
+                <div id="criticalPath" class="space-y-1"></div>
+            </div>
+
+            <!-- WBS -->
+            <div class="card mb-6">
+                <h2 class="section-title">WBS Structure</h2>
+                <pre id="wbsText" class="bg-gray-50 p-4 rounded-lg text-xs font-mono overflow-x-auto max-h-80"></pre>
+            </div>
+
+            <!-- Download -->
+            <div class="card">
+                <button onclick="DABO.downloadScheduleExcel()" class="btn-primary">
+                    Download P6-Compatible Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    DABO.requireProject('scheduleContent', 'scheduleNoProject');
+    DABO.loadScheduleProjectInfo();
+});
+</script>

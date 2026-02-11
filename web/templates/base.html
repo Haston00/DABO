@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DABO | McCrory Construction{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { DEFAULT: '#00263A', light: '#003854', dark: '#001B2B' },
+                        orange: { DEFAULT: '#FF5A19', hover: '#E04E10', glow: 'rgba(255,90,25,0.15)' },
+                        cream: { DEFAULT: '#EFEAE2', light: '#F7F5F0' },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="font-sans bg-white text-gray-900 antialiased">
+    {% block body %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

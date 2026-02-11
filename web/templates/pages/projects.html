@@ -1,0 +1,63 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <!-- Page header -->
+    <div class="page-header">
+        <h1 class="page-title">Project Setup</h1>
+    </div>
+
+    <!-- Create new project -->
+    <div class="card mb-8">
+        <div class="info-banner mb-6">
+            <strong>Create a new project</strong>
+            <p class="text-gray-600 text-sm mt-1">Enter project details below. Upload drawings on the Ingestion page after creation.</p>
+        </div>
+
+        <form id="newProjectForm" onsubmit="return DABO.createProject(event)">
+            <div class="mb-4">
+                <label class="form-label">Project Name</label>
+                <input type="text" name="name" class="form-input" placeholder="McCrory Office Tower" required>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="form-label">Building Type</label>
+                    <select name="building_type" class="form-input">
+                        <option value="office">Office</option>
+                        <option value="retail">Retail</option>
+                        <option value="warehouse">Warehouse</option>
+                        <option value="medical">Medical</option>
+                        <option value="education">Education</option>
+                        <option value="mixed_use">Mixed Use</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Square Feet</label>
+                    <input type="number" name="square_feet" class="form-input" value="50000" min="1000" max="5000000" step="1000">
+                </div>
+                <div>
+                    <label class="form-label">Stories</label>
+                    <input type="number" name="stories" class="form-input" value="2" min="1" max="100">
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="form-label">Notes (optional)</label>
+                <textarea name="notes" class="form-input" rows="2" placeholder="PM name, address, scope notes..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary">Create Project</button>
+        </form>
+    </div>
+
+    <!-- Existing projects -->
+    <h2 class="section-title">Existing Projects</h2>
+    <div id="projectsList" class="space-y-4">
+        <div class="empty-state">
+            <div class="empty-icon">&#128203;</div>
+            <div class="empty-title">Loading projects...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => DABO.loadProjects());
+</script>

@@ -1,0 +1,67 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <div class="page-header">
+        <h1 class="page-title">PDF Ingestion</h1>
+    </div>
+
+    <div id="ingestionNoProject" class="alert-warning" style="display:none;">
+        Select a project in the sidebar first.
+    </div>
+
+    <div id="ingestionContent" style="display:none;">
+        <!-- Upload area -->
+        <div class="card mb-8">
+            <h2 class="section-title">Upload Files</h2>
+            <div class="upload-zone" id="uploadZone"
+                 ondrop="DABO.handleDrop(event)" ondragover="DABO.handleDragOver(event)" ondragleave="DABO.handleDragLeave(event)">
+                <input type="file" id="fileInput" multiple accept=".pdf" class="hidden" onchange="DABO.handleFileSelect(event)">
+                <div class="text-center py-8">
+                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <p class="text-gray-500 font-medium">Drag & drop PDF files here</p>
+                    <p class="text-gray-400 text-sm mt-1">or</p>
+                    <button onclick="document.getElementById('fileInput').click()" class="btn-primary mt-3 text-sm">
+                        Browse Files
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selected files list -->
+            <div id="selectedFiles" class="mt-4 hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold text-navy" id="fileCount">0 files selected</span>
+                    <button onclick="DABO.uploadFiles()" class="btn-primary text-sm" id="uploadBtn">
+                        Process Uploads
+                    </button>
+                </div>
+                <div id="fileList" class="space-y-1"></div>
+            </div>
+
+            <!-- Progress -->
+            <div id="uploadProgress" class="mt-4 hidden">
+                <div class="flex justify-between text-sm mb-1">
+                    <span id="progressText" class="text-gray-600">Processing...</span>
+                    <span id="progressPct" class="font-semibold text-navy">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File status -->
+        <div class="card">
+            <h2 class="section-title">Processing Status</h2>
+            <div id="fileStatus">
+                <div class="text-gray-400 text-sm py-4">No files uploaded yet.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    DABO.requireProject('ingestionContent', 'ingestionNoProject');
+    DABO.loadFileStatus();
+});
+</script>

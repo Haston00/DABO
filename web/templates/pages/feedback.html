@@ -1,0 +1,94 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <div class="page-header">
+        <h1 class="page-title">Feedback & Corrections</h1>
+    </div>
+
+    <div id="feedbackNoProject" class="alert-warning" style="display:none;">
+        Select a project in the sidebar first.
+    </div>
+
+    <div id="feedbackContent" style="display:none;">
+        <!-- Tabs -->
+        <div class="tab-bar mb-6">
+            <button class="tab active" onclick="DABO.switchFeedbackTab('conflict')" id="tabConflict">Conflict Feedback</button>
+            <button class="tab" onclick="DABO.switchFeedbackTab('rules')" id="tabRules">Rule Management</button>
+            <button class="tab" onclick="DABO.switchFeedbackTab('metrics')" id="tabMetrics">Accuracy Metrics</button>
+        </div>
+
+        <!-- Tab: Conflict Feedback -->
+        <div id="feedbackConflict">
+            <div class="card">
+                <p class="text-gray-600 text-sm mb-4">Review detected conflicts and provide feedback to improve future accuracy.</p>
+                <div id="feedbackConflictList">
+                    <div class="text-gray-400 text-sm py-4">No review results available. Run a Plan Review first.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Rule Management -->
+        <div id="feedbackRules" class="hidden">
+            <div class="card mb-6">
+                <h2 class="section-title">Suppressed Rules</h2>
+                <div id="suppressedRulesList" class="space-y-2">
+                    <div class="text-gray-400 text-sm">No rules currently suppressed.</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="section-title">Suppress a Rule</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="form-label">Select Rule</label>
+                        <select id="ruleSelect" class="form-input">
+                            <option value="">Loading rules...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Scope</label>
+                        <select id="ruleScope" class="form-input">
+                            <option value="project">This project only</option>
+                            <option value="global">Global (all projects)</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="DABO.suppressRule()" class="btn-primary text-sm">Suppress Rule</button>
+            </div>
+        </div>
+
+        <!-- Tab: Accuracy Metrics -->
+        <div id="feedbackMetrics" class="hidden">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="metric-card">
+                    <div class="metric-value" id="metricTotal">0</div>
+                    <div class="metric-label">Total Reviewed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value text-green-600" id="metricTPR">0%</div>
+                    <div class="metric-label">True Positive Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value text-red-600" id="metricFPR">0%</div>
+                    <div class="metric-label">False Positive Rate</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="metricSevChanges">0</div>
+                    <div class="metric-label">Severity Changes</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div id="metricsDetail" class="space-y-2 text-sm text-gray-700"></div>
+                <div id="noMetrics" class="text-gray-400 text-sm py-4">
+                    No feedback recorded yet. Submit feedback on conflicts to build accuracy data.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    DABO.requireProject('feedbackContent', 'feedbackNoProject');
+    DABO.loadFeedbackData();
+});
+</script>

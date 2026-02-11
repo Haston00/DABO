@@ -18,7 +18,8 @@ def main():
     parser = argparse.ArgumentParser(description="DABO — AI Plan Review & Scheduling Agent")
     parser.add_argument("--ingest", type=str, help="Ingest a PDF file (quick CLI mode)")
     parser.add_argument("--test", action="store_true", help="Run a quick self-test")
-    parser.add_argument("--dashboard", action="store_true", help="Launch Streamlit dashboard (default)")
+    parser.add_argument("--dashboard", action="store_true", help="Launch Streamlit dashboard (legacy)")
+    parser.add_argument("--web", action="store_true", help="Launch Flask web dashboard (default)")
     args = parser.parse_args()
 
     # Bootstrap database
@@ -29,8 +30,10 @@ def main():
         _run_self_test()
     elif args.ingest:
         _run_ingest(args.ingest)
+    elif args.dashboard:
+        _launch_streamlit()
     else:
-        _launch_dashboard()
+        _launch_web()
 
 
 def _run_self_test():
@@ -117,11 +120,20 @@ def _run_ingest(file_path: str):
     print(f"{'='*60}\n")
 
 
-def _launch_dashboard():
-    """Launch the Streamlit dashboard."""
+def _launch_web():
+    """Launch the Flask web dashboard."""
+    from web.app import create_app
+    app = create_app()
+    print("\n  DABO Web Dashboard")
+    print("  http://localhost:5000\n")
+    app.run(debug=True, port=5000)
+
+
+def _launch_streamlit():
+    """Launch the Streamlit dashboard (legacy)."""
     import subprocess
     dashboard_path = Path(__file__).resolve().parent / "dashboard" / "app.py"
-    print(f"Launching DABO dashboard...")
+    print(f"Launching DABO Streamlit dashboard (legacy)...")
     subprocess.run([sys.executable, "-m", "streamlit", "run", str(dashboard_path)])
 
 

@@ -1,0 +1,32 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <div class="page-header">
+        <h1 class="page-title">Export Center</h1>
+    </div>
+
+    <div id="exportsNoProject" class="alert-warning" style="display:none;">
+        Select a project in the sidebar first.
+    </div>
+
+    <div id="exportsContent" style="display:none;">
+        <div class="card mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <button onclick="DABO.generateReport()" class="btn-primary text-sm">Generate Summary Report</button>
+                <button onclick="DABO.loadExports()" class="btn-secondary text-sm">Refresh</button>
+            </div>
+        </div>
+
+        <div id="exportsList" class="space-y-6">
+            <div class="empty-state">
+                <div class="empty-icon">&#128230;</div>
+                <div class="empty-title">Loading exports...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    DABO.requireProject('exportsContent', 'exportsNoProject');
+    DABO.loadExports();
+});
+</script>

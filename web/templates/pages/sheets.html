@@ -1,0 +1,70 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <div class="page-header">
+        <h1 class="page-title">Sheet Index</h1>
+    </div>
+
+    <div id="sheetsNoProject" class="alert-warning" style="display:none;">
+        Select a project in the sidebar first.
+    </div>
+
+    <div id="sheetsContent" style="display:none;">
+        <!-- Metrics row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="sheetMetrics">
+            <div class="metric-card">
+                <div class="metric-value" id="totalSheets">—</div>
+                <div class="metric-label">Total Sheets</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="totalDiscs">—</div>
+                <div class="metric-label">Disciplines</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="avgConf">—</div>
+                <div class="metric-label">Avg Confidence</div>
+            </div>
+        </div>
+
+        <!-- Discipline badges -->
+        <div class="card mb-6">
+            <h2 class="section-title">Discipline Breakdown</h2>
+            <div id="discBadges" class="flex flex-wrap gap-2 mb-4"></div>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="discChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Sheet table -->
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="section-title mb-0">All Sheets</h2>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-500 font-medium">Filter:</label>
+                    <select id="discFilter" class="form-input text-sm py-1" onchange="DABO.filterSheets()">
+                        <option value="">All Disciplines</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table" id="sheetsTable">
+                    <thead>
+                        <tr>
+                            <th>Sheet ID</th>
+                            <th>Sheet Name</th>
+                            <th>Discipline</th>
+                            <th>Page</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sheetsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    DABO.requireProject('sheetsContent', 'sheetsNoProject');
+    DABO.loadSheets();
+});
+</script>

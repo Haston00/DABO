@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: dabo
+    runtime: python
+    buildCommand: pip install -r requirements-deploy.txt
+    startCommand: gunicorn web.app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.12.8

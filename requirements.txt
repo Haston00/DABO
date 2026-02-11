@@ -20,9 +20,12 @@ networkx>=3.0
 # AI
 anthropic>=0.40.0
 
-# Dashboard
+# Dashboard (Streamlit — legacy)
 streamlit>=1.38.0
 plotly>=5.18.0
+
+# Web Dashboard (Flask)
+flask>=3.0.0
 
 # Utilities
 python-dateutil>=2.8.0

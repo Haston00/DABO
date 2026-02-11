@@ -1,0 +1,77 @@
+<div class="p-8 max-w-6xl mx-auto">
+    <div class="page-header">
+        <h1 class="page-title">RFI Log</h1>
+    </div>
+
+    <div id="rfisNoProject" class="alert-warning" style="display:none;">
+        Select a project in the sidebar first.
+    </div>
+
+    <div id="rfisContent" style="display:none;">
+        <!-- Action bar -->
+        <div class="card mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <button onclick="DABO.generateRFIs()" class="btn-primary text-sm" id="genRfiBtn">
+                    Generate RFIs from Review
+                </button>
+                <button onclick="DABO.exportRFIs()" class="btn-secondary text-sm" id="exportRfiBtn" disabled>
+                    Export to Excel
+                </button>
+                <select id="rfiSevFilter" class="form-input text-sm py-1 w-40" onchange="DABO.filterRFIs()">
+                    <option value="">All Severities</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="MAJOR">Major</option>
+                    <option value="MINOR">Minor</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- RFI Metrics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="rfiMetrics" style="display:none;">
+            <div class="metric-card">
+                <div class="metric-value" id="rfiTotal">0</div>
+                <div class="metric-label">Total RFIs</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value text-red-600" id="rfiCritical">0</div>
+                <div class="metric-label">Critical</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value text-orange" id="rfiMajor">0</div>
+                <div class="metric-label">Major</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value text-blue-600" id="rfiOpen">0</div>
+                <div class="metric-label">Open</div>
+            </div>
+        </div>
+
+        <!-- RFI table -->
+        <div class="card">
+            <div class="overflow-x-auto">
+                <table class="data-table" id="rfiTable">
+                    <thead>
+                        <tr>
+                            <th>RFI #</th>
+                            <th>Severity</th>
+                            <th>Subject</th>
+                            <th>Discipline</th>
+                            <th>Sheets</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rfiBody"></tbody>
+                </table>
+            </div>
+            <div id="noRfis" class="text-center py-8 text-gray-400">
+                <p>No RFIs generated yet. Run a Plan Review first, then generate RFIs.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    DABO.requireProject('rfisContent', 'rfisNoProject');
+});
+</script>

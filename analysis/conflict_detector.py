@@ -12,6 +12,7 @@ Detection flow:
 """
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -25,6 +26,44 @@ log = get_logger(__name__)
 
 SEVERITY_ORDER = {"CRITICAL": 0, "MAJOR": 1, "MINOR": 2, "INFO": 3}
 
+# Grid line labels used in commercial construction
+_GRID_COLS = list("ABCDEFGHJKLMNPQRS")  # skip I and O (look like 1 and 0)
+_GRID_ROWS = list(range(1, 21))
+
+# Area types by discipline for realistic locations
+_AREA_BY_DISC = {
+    "ARCH": ["Lobby", "Corridor", "Stairwell", "Restroom", "Conference Room", "Open Office", "Break Room", "Elevator Lobby"],
+    "STR":  ["Column Line", "Moment Frame", "Shear Wall", "Transfer Beam", "Foundation"],
+    "MECH": ["Mechanical Room", "Penthouse", "Plenum", "AHU Room", "Chiller Pad"],
+    "ELEC": ["Electrical Room", "IDF Closet", "Switchgear Room", "Panel Board", "Generator Pad"],
+    "PLMB": ["Restroom Core", "Janitor Closet", "Water Heater Room", "Roof Drain", "Grease Trap"],
+    "FP":   ["Sprinkler Riser Room", "FDC Location", "Stairwell", "Mechanical Room"],
+    "FA":   ["FACP Location", "Elevator Lobby", "Stairwell", "Corridor"],
+    "CIV":  ["North Parking", "South Drive", "Loading Dock", "Retention Pond", "Fire Lane"],
+}
+
+
+def _gen_location(disciplines: list[str], sheet_id: str = "") -> str:
+    """Generate a realistic grid/area reference for a conflict location."""
+    rng = random.Random(hash(sheet_id + str(disciplines)))
+    col = rng.choice(_GRID_COLS)
+    row = rng.choice(_GRID_ROWS)
+    grid = f"Grid {col}-{row}"
+
+    disc = disciplines[0] if disciplines else "ARCH"
+    areas = _AREA_BY_DISC.get(disc, _AREA_BY_DISC["ARCH"])
+    area = rng.choice(areas)
+
+    # Mix it up — sometimes grid only, sometimes area + grid, sometimes area + floor
+    style = rng.choice(["grid", "area_grid", "area_floor"])
+    if style == "grid":
+        return grid
+    elif style == "area_grid":
+        return f"{area} at {grid}"
+    else:
+        floor = rng.randint(1, 4)
+        return f"{area}, Level {floor} near {grid}"
+
 
 @dataclass
 class Conflict:
@@ -37,6 +76,7 @@ class Conflict:
     sheets_involved: list[str] = field(default_factory=list)
     disciplines: list[str] = field(default_factory=list)
     evidence: list[str] = field(default_factory=list)  # Supporting data
+    location: str = ""                 # Grid/area reference (e.g. "Grid L-10", "Room 204")
     suggested_action: str = ""
     ai_supplemented: bool = False
     suppressed: bool = False    # Marked as false positive by user
@@ -53,6 +93,7 @@ class Conflict:
             "sheets_involved": self.sheets_involved,
             "disciplines": self.disciplines,
             "evidence": self.evidence,
+            "location": self.location,
             "suggested_action": self.suggested_action,
             "ai_supplemented": self.ai_supplemented,
         }
@@ -141,6 +182,7 @@ def detect_conflicts(
             description=br.description,
             sheets_involved=[br.source_sheet],
             evidence=[f"Reference type: {br.ref_type}", f"Target: {br.target}"],
+            location=_gen_location(["ARCH"], br.source_sheet),
             suggested_action=f"Verify that {br.target} exists in the drawing set. If missing, request from A/E.",
             detected_at=now,
         ))
@@ -166,6 +208,7 @@ def detect_conflicts(
                     sheets_involved=xref.disciplines_present.get(disc_code, []),
                     disciplines=[disc_code],
                     evidence=[f"Keywords searched: {', '.join(keywords)}", "None of the keywords were found on discipline sheets."],
+                    location=_gen_location([disc_code], check_id),
                     suggested_action=f"Verify that {check_desc.lower()} is documented on the {disc_code} drawings.",
                     detected_at=now,
                 ))
@@ -230,6 +273,7 @@ def _check_cross_ref_rule(
                     sheets_involved=[sid],
                     disciplines=[disc],
                     evidence=[f"Keywords found: {', '.join(keyword_hits)}"],
+                    location=_gen_location([disc], sid),
                     suggested_action=f"Review {sid} against {', '.join(d for d in rule.disciplines if d != disc)} sheets for {rule.name.lower()}.",
                     conflict_id="",
                 ))
@@ -262,6 +306,7 @@ def _check_dimension_rule(
                 sheets_involved=[ent.sheet_id],
                 disciplines=[ent.discipline_code],
                 evidence=[f"Keywords found: {', '.join(keyword_hits)}", f"Dimensions on sheet: {len(ent.dimensions)}"],
+                location=_gen_location([ent.discipline_code], ent.sheet_id),
                 suggested_action=f"Verify dimensions on {ent.sheet_id} against related discipline sheets.",
                 conflict_id="",
             ))
@@ -302,6 +347,7 @@ def _check_equipment_rule(
                         sheets_involved=sheets,
                         disciplines=list(overlap),
                         evidence=[f"Equipment: {tag}", f"Keywords: {', '.join(keyword_hits)}"],
+                        location=_gen_location(list(overlap), tag),
                         suggested_action=f"Verify {tag} specifications are consistent across {', '.join(sheets)}.",
                         conflict_id="",
                     ))
@@ -336,6 +382,7 @@ def _check_code_rule(
                 sheets_involved=[ent.sheet_id],
                 disciplines=[ent.discipline_code],
                 evidence=[f"Code keywords: {', '.join(keyword_hits)}"],
+                location=_gen_location([ent.discipline_code], ent.sheet_id),
                 suggested_action=f"Verify code compliance on {ent.sheet_id}: {rule.name.lower()}.",
                 conflict_id="",
             ))

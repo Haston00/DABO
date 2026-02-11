@@ -708,16 +708,19 @@ const DABO = {
             const discs = (c.disciplines || []).join(', ');
             const evidence = (c.evidence || []);
             const action = c.suggested_action || '';
+            const location = c.location || '';
 
             return `
             <div class="conflict-card" id="conflict-${i}" onclick="DABO.toggleConflict(${i})">
                 <div class="conflict-header">
                     <span class="badge badge-${(c.severity || 'info').toLowerCase()}">${c.severity || 'INFO'}</span>
                     <span class="font-semibold">${this._esc(c.rule_name || c.rule_id || '')}</span>
+                    ${location ? `<span class="text-xs text-gray-500 ml-2 font-mono">${this._esc(location)}</span>` : ''}
                     <span class="conflict-chevron">&#9654;</span>
                 </div>
                 <div class="conflict-body">
                     <p class="mb-2"><strong>Issue:</strong> ${this._esc(c.description || '')}</p>
+                    ${location ? `<p class="mb-1"><strong>Location:</strong> <span class="font-mono font-semibold text-navy">${this._esc(location)}</span></p>` : ''}
                     ${sheets ? `<p class="mb-1"><strong>Sheets:</strong> <span class="font-mono">${this._esc(sheets)}</span></p>` : ''}
                     ${discs ? `<p class="mb-1"><strong>Disciplines:</strong> ${this._esc(discs)}</p>` : ''}
                     <p class="mb-1"><strong>Category:</strong> ${this._esc(c.category || 'N/A')}</p>
@@ -793,10 +796,11 @@ const DABO = {
         if (exportBtn) exportBtn.disabled = false;
 
         // Metrics
-        document.getElementById('rfiTotal').textContent = rfis.length;
-        document.getElementById('rfiCritical').textContent = rfis.filter(r => r.severity === 'CRITICAL').length;
-        document.getElementById('rfiMajor').textContent = rfis.filter(r => r.severity === 'MAJOR').length;
-        document.getElementById('rfiOpen').textContent = rfis.filter(r => r.status === 'Open').length;
+        const _el = (id) => document.getElementById(id);
+        if (_el('rfiTotal')) _el('rfiTotal').textContent = rfis.length;
+        if (_el('rfiCritical')) _el('rfiCritical').textContent = rfis.filter(r => r.severity === 'CRITICAL').length;
+        if (_el('rfiMajor')) _el('rfiMajor').textContent = rfis.filter(r => r.severity === 'MAJOR').length;
+        if (_el('rfiOpen')) _el('rfiOpen').textContent = rfis.filter(r => r.status === 'Open').length;
 
         // Table
         body.innerHTML = rfis.map(r => `
@@ -1204,9 +1208,11 @@ const DABO = {
         else this._ganttPxPerDay = Math.max(4, this._ganttPxPerDay - 4);
 
         const label = document.getElementById('ganttZoomLabel');
-        if (this._ganttPxPerDay >= 28) label.textContent = 'Days';
-        else if (this._ganttPxPerDay >= 14) label.textContent = 'Weeks';
-        else label.textContent = 'Months';
+        if (label) {
+            if (this._ganttPxPerDay >= 28) label.textContent = 'Days';
+            else if (this._ganttPxPerDay >= 14) label.textContent = 'Weeks';
+            else label.textContent = 'Months';
+        }
 
         // Re-render with current data
         if (this._scheduleData && this._scheduleData.gantt_data) {

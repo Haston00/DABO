@@ -312,6 +312,62 @@ const DABO = {
         TECH: '#7B1FA2', FS: '#FF6F00', CONV: '#455A64',
     },
 
+    // Demo drawing PDFs — UF Rinker Hall construction documents (public educational set)
+    _DEMO_DRAWINGS: {
+        // Architectural
+        'A-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_006.pdf',
+        'A-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_007.pdf',
+        'A-103': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_008.pdf',
+        'A-104': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_009.pdf',
+        'A-201': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_014.pdf',
+        'A-301': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_018.pdf',
+        'A-401': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_022.pdf',
+        'A-501': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_026.pdf',
+        'A-601': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_030.pdf',
+        'A-701': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_035.pdf',
+        'A-801': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_040.pdf',
+        'A-901': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_045.pdf',
+        // Structural
+        'S-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_050.pdf',
+        'S-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_051.pdf',
+        'S-103': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_052.pdf',
+        'S-104': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_053.pdf',
+        'S-105': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_054.pdf',
+        'S-201': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_055.pdf',
+        'S-301': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_057.pdf',
+        'S-401': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_059.pdf',
+        // Mechanical
+        'M-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_060.pdf',
+        'M-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_061.pdf',
+        'M-103': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_062.pdf',
+        'M-201': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_063.pdf',
+        'M-301': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_064.pdf',
+        'M-401': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_065.pdf',
+        // Plumbing
+        'P-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_069.pdf',
+        'P-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_070.pdf',
+        'P-201': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_071.pdf',
+        'P-301': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_072.pdf',
+        // Electrical
+        'E-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_075.pdf',
+        'E-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_076.pdf',
+        'E-103': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_077.pdf',
+        'E-201': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_078.pdf',
+        'E-301': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_080.pdf',
+        'E-401': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_082.pdf',
+        'E-501': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_084.pdf',
+        // Fire Protection
+        'FP-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_087.pdf',
+        'FP-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_088.pdf',
+        'FP-201': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_089.pdf',
+        // General / Cover
+        'G-001': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_001.pdf',
+        'G-002': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/Rinker_001.pdf',
+        // Civil
+        'C-101': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/DEST213524.pdf',
+        'C-102': 'https://coremng.dcp.ufl.edu/rinkerhall/images/rinker/Drawings/DEST213525.pdf',
+    },
+
     async loadSheets() {
         const pid = this.getProjectId();
         if (!pid) return;
@@ -402,6 +458,10 @@ const DABO = {
             const conf = s.confidence || 0;
             const pct = Math.round(conf * 100);
             const color = this._DISC_COLORS[s.discipline] || '#888';
+            const hasDrawing = this._DEMO_DRAWINGS[s.sheet_id];
+            const viewBtn = hasDrawing
+                ? `<button class="btn-sm btn-view" onclick="DABO.viewDrawing('${this._esc(s.sheet_id)}','${this._esc(s.sheet_name || '')}')">View</button>`
+                : '<span class="text-gray-300 text-xs">—</span>';
             return `
                 <tr>
                     <td class="font-mono font-semibold">${this._esc(s.sheet_id || '—')}</td>
@@ -414,8 +474,46 @@ const DABO = {
                             <span class="conf-pct">${pct}%</span>
                         </div>
                     </td>
+                    <td>${viewBtn}</td>
                 </tr>`;
         }).join('');
+    },
+
+    viewDrawing(sheetId, sheetName) {
+        const url = this._DEMO_DRAWINGS[sheetId];
+        if (!url) return;
+
+        // Create or reuse the modal
+        let modal = document.getElementById('drawingModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'drawingModal';
+            modal.className = 'drawing-modal';
+            modal.innerHTML = `
+                <div class="drawing-modal-content">
+                    <div class="drawing-modal-header">
+                        <span class="drawing-modal-title" id="drawingTitle"></span>
+                        <button class="drawing-modal-close" onclick="DABO.closeDrawing()">&times;</button>
+                    </div>
+                    <iframe id="drawingFrame" class="drawing-frame"></iframe>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        document.getElementById('drawingTitle').textContent = `${sheetId} — ${sheetName}`;
+        document.getElementById('drawingFrame').src = url;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    },
+
+    closeDrawing() {
+        const modal = document.getElementById('drawingModal');
+        if (modal) {
+            modal.classList.remove('active');
+            document.getElementById('drawingFrame').src = '';
+            document.body.style.overflow = '';
+        }
     },
 
     filterSheets() {

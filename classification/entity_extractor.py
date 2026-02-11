@@ -12,12 +12,15 @@ Built for commercial construction drawing sets.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from classification.sheet_classifier import ClassifiedSheet
 from classification.text_parser import parse_sheet_text, ParsedSheet
 from classification.dimension_parser import parse_dimensions, Dimension
-from ingestion.pdf_engine import PageResult
 from utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from ingestion.pdf_engine import PageResult
 
 log = get_logger(__name__)
 

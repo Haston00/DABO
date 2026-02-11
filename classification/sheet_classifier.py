@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from config.sheet_patterns import SHEET_PREFIX_PATTERNS, TITLE_BLOCK_KEYWORDS
-from ingestion.pdf_engine import PageResult
 from utils.helpers import normalize_sheet_id, extract_page_number
 from utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from ingestion.pdf_engine import PageResult
 
 log = get_logger(__name__)
 

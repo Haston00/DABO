@@ -110,6 +110,7 @@ const DABO = {
             building_type: form.building_type.value,
             square_feet: parseInt(form.square_feet.value),
             stories: parseInt(form.stories.value),
+            scope: form.scope ? form.scope.value : 'new_construction',
             notes: form.notes.value,
         };
         try {
@@ -150,10 +151,14 @@ const DABO = {
                         </div>
                         <span class="text-xs text-gray-400">${p.created_at || ''}</span>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
                         <div class="text-center">
                             <div class="text-sm font-bold text-navy">${this._titleCase(p.building_type)}</div>
                             <div class="text-xs text-gray-400 uppercase">Type</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm font-bold text-navy">${this._scopeLabel(p.scope)}</div>
+                            <div class="text-xs text-gray-400 uppercase">Scope</div>
                         </div>
                         <div class="text-center">
                             <div class="text-sm font-bold text-navy">${(p.square_feet || 0).toLocaleString()}</div>
@@ -838,6 +843,7 @@ const DABO = {
             const el = (id) => document.getElementById(id);
             if (el('schedBuildType')) el('schedBuildType').textContent = this._titleCase(p.building_type);
             if (el('schedSF')) el('schedSF').textContent = `${(p.square_feet || 0).toLocaleString()} SF`;
+            if (el('schedScope')) el('schedScope').textContent = this._scopeLabel(p.scope);
         }).catch(() => {});
     },
 
@@ -1430,5 +1436,14 @@ const DABO = {
     _titleCase(str) {
         if (!str) return '';
         return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+
+    _scopeLabel(scope) {
+        const map = {
+            'new_construction': 'New Construction',
+            'renovation': 'Renovation',
+            'tenant_improvement': 'Tenant Improvement',
+        };
+        return map[scope] || 'New Construction';
     },
 };

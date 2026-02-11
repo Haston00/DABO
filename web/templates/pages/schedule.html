@@ -11,7 +11,7 @@
         <!-- Generate schedule -->
         <div class="card mb-8">
             <h2 class="section-title">Generate CPM Schedule</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
                     <label class="form-label">Project Start Date</label>
                     <input type="date" id="schedStartDate" class="form-input" value="2026-04-01">
@@ -23,6 +23,10 @@
                 <div>
                     <label class="form-label">Square Feet</label>
                     <div class="text-sm text-gray-600 mt-2" id="schedSF">&mdash;</div>
+                </div>
+                <div>
+                    <label class="form-label">Project Scope</label>
+                    <div class="text-sm text-gray-600 mt-2" id="schedScope">&mdash;</div>
                 </div>
             </div>
             <button onclick="DABO.generateSchedule()" class="btn-primary" id="schedBtn">

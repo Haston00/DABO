@@ -24,6 +24,7 @@ def generate_schedule(
     stories: int = 2,
     start_date: datetime | None = None,
     output_dir: Path | str = ".",
+    scope: str = "new_construction",
 ) -> dict:
     """
     Generate a complete CPM schedule and export to Excel.
@@ -34,7 +35,7 @@ def generate_schedule(
     output_dir = Path(output_dir)
 
     # 1. Build activities
-    activities = build_activities(building_type, square_feet, stories)
+    activities = build_activities(building_type, square_feet, stories, scope=scope)
 
     # 2. Validate
     errors = validate_predecessors(activities)

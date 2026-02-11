@@ -23,7 +23,7 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 def list_projects():
     conn = get_conn()
     rows = conn.execute(
-        "SELECT p.id, p.name, p.building_type, p.square_feet, p.stories, "
+        "SELECT p.id, p.name, p.building_type, p.square_feet, p.stories, p.scope, "
         "       p.notes, p.created_at, "
         "       (SELECT COUNT(*) FROM sheets WHERE project_id = p.id) as sheet_count, "
         "       (SELECT COUNT(*) FROM project_files WHERE project_id = p.id) as file_count "
@@ -43,12 +43,13 @@ def create_project():
     building_type = data.get("building_type", "office")
     square_feet = data.get("square_feet", 50000)
     stories = data.get("stories", 2)
+    scope = data.get("scope", "new_construction")
     notes = (data.get("notes") or "").strip()
 
     conn = get_conn()
     cursor = conn.execute(
-        "INSERT INTO projects (name, building_type, square_feet, stories, notes) VALUES (?, ?, ?, ?, ?)",
-        (name, building_type, int(square_feet), int(stories), notes),
+        "INSERT INTO projects (name, building_type, square_feet, stories, scope, notes) VALUES (?, ?, ?, ?, ?, ?)",
+        (name, building_type, int(square_feet), int(stories), scope, notes),
     )
     conn.commit()
     pid = cursor.lastrowid
@@ -358,6 +359,8 @@ def generate_schedule(pid):
 
         start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
 
+        scope = project.get("scope", "new_construction") or "new_construction"
+
         result = gen_sched(
             project_name=project["name"],
             building_type=project["building_type"],
@@ -365,15 +368,16 @@ def generate_schedule(pid):
             stories=project.get("stories", 1) or 1,
             start_date=start_dt,
             output_dir=output_dir,
+            scope=scope,
         )
 
         if "error" in result:
             return jsonify(result), 400
 
-        # WBS division names for Gantt grouping
+        # WBS division names for Gantt grouping (CSI MasterFormat)
         _WBS_NAMES = {
             "01": "General Requirements",
-            "02": "Site Construction",
+            "02": "Site Construction / Demo",
             "03": "Concrete",
             "05": "Metals / Structural Steel",
             "07": "Thermal & Moisture Protection",

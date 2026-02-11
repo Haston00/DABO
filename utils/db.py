@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS projects (
     building_type   TEXT,
     square_feet     INTEGER,
     stories         INTEGER,
+    scope           TEXT DEFAULT 'new_construction',
     created_at      TEXT DEFAULT (datetime('now')),
     notes           TEXT
 );
@@ -102,6 +103,15 @@ CREATE TABLE IF NOT EXISTS markups (
 """
 
 
+def _migrate(conn: sqlite3.Connection):
+    """Add columns that may be missing from older databases."""
+    # Check if scope column exists on projects table
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
+    if "scope" not in cols:
+        conn.execute("ALTER TABLE projects ADD COLUMN scope TEXT DEFAULT 'new_construction'")
+        conn.commit()
+
+
 def get_conn() -> sqlite3.Connection:
     """
     Return a SQLite connection with WAL mode and foreign keys enabled.
@@ -113,6 +123,7 @@ def get_conn() -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(_SCHEMA_SQL)
+    _migrate(conn)
     return conn
 
 

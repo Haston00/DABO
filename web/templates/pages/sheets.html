@@ -9,7 +9,7 @@
 
     <div id="sheetsContent" style="display:none;">
         <!-- Metrics row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="sheetMetrics">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="sheetMetrics">
             <div class="metric-card">
                 <div class="metric-value" id="totalSheets">—</div>
                 <div class="metric-label">Total Sheets</div>
@@ -22,6 +22,10 @@
                 <div class="metric-value" id="avgConf">—</div>
                 <div class="metric-label">Avg Confidence</div>
             </div>
+            <div class="metric-card">
+                <div class="metric-value" id="totalMarkups" style="color:#FF5A19;">—</div>
+                <div class="metric-label">Bluebeam Markups</div>
+            </div>
         </div>
 
         <!-- Discipline badges -->
@@ -31,6 +35,27 @@
             <div class="chart-container" style="height: 300px;">
                 <canvas id="discChart"></canvas>
             </div>
+        </div>
+
+        <!-- Bluebeam Markups -->
+        <div class="card mb-6" id="markupsCard" style="display:none;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="section-title mb-0" style="display:flex;align-items:center;gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF5A19" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Bluebeam Markups
+                </h2>
+                <div class="flex items-center gap-3">
+                    <div id="markupAuthors" class="flex gap-2"></div>
+                    <select id="markupFilter" class="form-input text-sm py-1" onchange="DABO.filterMarkups()">
+                        <option value="">All Types</option>
+                        <option value="callout">Callouts</option>
+                        <option value="cloud">Clouds</option>
+                        <option value="measurement">Measurements</option>
+                        <option value="stamp">Stamps</option>
+                    </select>
+                </div>
+            </div>
+            <div id="markupsList" class="space-y-2"></div>
         </div>
 
         <!-- Sheet table -->
@@ -67,5 +92,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     DABO.requireProject('sheetsContent', 'sheetsNoProject');
     DABO.loadSheets();
+    DABO.loadMarkups();
 });
 </script>

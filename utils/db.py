@@ -84,6 +84,21 @@ CREATE TABLE IF NOT EXISTS rule_adjustments (
     value           TEXT,
     created_at      TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS markups (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id      INTEGER NOT NULL REFERENCES projects(id),
+    sheet_id        TEXT,
+    markup_type     TEXT NOT NULL,
+    label           TEXT,
+    content         TEXT,
+    author          TEXT,
+    color           TEXT,
+    page_number     INTEGER,
+    x               REAL,
+    y               REAL,
+    created_at      TEXT DEFAULT (datetime('now'))
+);
 """
 
 

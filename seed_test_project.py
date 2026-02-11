@@ -151,6 +151,25 @@ def _seed_office_tower(conn):
         ("CR-022", "dismiss", "MINOR", "INFO", "Telecom pathway cleared with IT consultant"),
     ])
 
+    # Bluebeam markups — what Timmy would add during plan review
+    _insert_markups(conn, pid, [
+        ("A-101", "callout", "RFI", "Door 101A swings into corridor — verify clearance with ADA path of travel", "Timmy McClure", "#ff0000", 5),
+        ("A-101", "cloud", "VERIFY", "Column grid line offset 2\" between A-101 and S-101 — coordinate with structural", "Timmy McClure", "#ff6600", 5),
+        ("A-102", "measurement", "DIM", "Ceiling height 9'-6\" — confirm plenum depth for 24\" ductwork + sprinkler main", "Timmy McClure", "#0066ff", 6),
+        ("S-101", "callout", "HOLD", "Foundation step at grid C — waiting on geotech boring log confirmation", "Jake Reynolds", "#ffcc00", 15),
+        ("S-102", "stamp", "APPROVED", "Framing layout approved — steel order can proceed", "Timmy McClure", "#00cc00", 16),
+        ("M-101", "callout", "CLASH", "30x24 supply duct conflicts with W18x35 beam at grid B-3. Need 6\" clearance min.", "Timmy McClure", "#ff0000", 23),
+        ("M-101", "cloud", "REROUTE", "Return air path blocked by plumbing chase — reroute through corridor soffit?", "Timmy McClure", "#ff6600", 23),
+        ("E-101", "callout", "RFI", "Panel LP-1 location conflicts with fire extinguisher cabinet — move 3' east?", "Timmy McClure", "#ff0000", 33),
+        ("E-301", "callout", "VERIFY", "Main breaker rated 1200A but load calc shows 1150A — too close, verify with EE", "Jake Reynolds", "#ff6600", 37),
+        ("P-101", "measurement", "DIM", "Sanitary line invert at -4'-2\" — confirm slope to site manhole per C-102", "Timmy McClure", "#0066ff", 29),
+        ("FP-101", "callout", "CODE", "Sprinkler head spacing 14' — max is 13' per NFPA 13 for light hazard. Fix.", "Timmy McClure", "#ff0000", 40),
+        ("A-301", "cloud", "DETAIL", "Wall section at curtain wall base — no detail showing slab edge condition", "Timmy McClure", "#9933ff", 10),
+        ("A-601", "callout", "RFI", "Door schedule shows HM frame for 101B but elevation shows aluminum storefront", "Timmy McClure", "#ff0000", 13),
+        ("S-201", "stamp", "REVISE", "Connection detail SD-4 needs revision per steel fabricator RFI response", "Jake Reynolds", "#ff6600", 20),
+        ("M-301", "callout", "SPEC", "VAV box schedule calls for Trane but spec section 23 36 00 says Carrier — which?", "Timmy McClure", "#ff0000", 27),
+    ])
+
     return pid
 
 
@@ -275,6 +294,19 @@ def _seed_medical_center(conn):
         ("CR-019", "dismiss", "MINOR", "INFO", "Nurse call wiring path OK per low-voltage sub"),
     ])
 
+    _insert_markups(conn, pid, [
+        ("A-501", "callout", "RFI", "OR suite door width 3'-0\" — code requires 4'-0\" min for hospital gurney access", "Jake Reynolds", "#ff0000", 14),
+        ("A-502", "cloud", "VERIFY", "MRI room shielding wall shown 6\" — confirm RF shielding spec with equipment vendor", "Jake Reynolds", "#ff6600", 15),
+        ("M-401", "callout", "CODE", "Medical gas zone valve location not shown — required per NFPA 99 at each floor", "Jake Reynolds", "#ff0000", 30),
+        ("M-102", "callout", "CLASH", "48x36 supply main conflicts with 8\" sprinkler main at corridor ceiling grid D-2", "Jake Reynolds", "#ff0000", 26),
+        ("E-501", "callout", "CRITICAL", "Emergency generator ATS does not show life safety branch separation per NEC 700", "Jake Reynolds", "#ff0000", 48),
+        ("E-302", "cloud", "VERIFY", "Emergency one-line missing equipment branch — MRI and CT need dedicated circuits", "Jake Reynolds", "#ff6600", 46),
+        ("S-301", "callout", "VIBRATION", "MRI room requires vibration isolation to 125 µin/sec — no detail shown for slab", "Jake Reynolds", "#9933ff", 24),
+        ("P-301", "measurement", "DIM", "Medical gas riser size 1-1/4\" — verify capacity for 3 floors of O2/N2O/vacuum", "Jake Reynolds", "#0066ff", 38),
+        ("FP-102", "callout", "CODE", "Clean agent suppression required in server room per NFPA 75 — not shown", "Jake Reynolds", "#ff0000", 51),
+        ("FA-301", "callout", "RFI", "Nurse call head-end location not coordinated with IT server room layout on T-201", "Jake Reynolds", "#ff0000", 57),
+    ])
+
     return pid
 
 
@@ -359,6 +391,15 @@ def _seed_mixed_use(conn):
         ("CR-010", "downgrade", "MAJOR", "MINOR", "EV charging conduit path works — just needs sleeve in podium"),
     ])
 
+    _insert_markups(conn, pid, [
+        ("A-101", "callout", "RFI", "Retail storefront height 12' on elevation but 10' on plan — which is correct?", "Sarah Chen", "#ff0000", 4),
+        ("S-101", "cloud", "VERIFY", "Podium slab pour-back at column C-3 — no rebar splice detail for wood-to-concrete", "Sarah Chen", "#ff6600", 13),
+        ("M-101", "callout", "SPEC", "Retail HVAC shows split system but spec says VRF — confirm system type", "Sarah Chen", "#ff0000", 16),
+        ("E-501", "callout", "CODE", "EV charging stations need dedicated 50A circuits — panel LP-R1 has no spare slots", "Sarah Chen", "#ff0000", 38),
+        ("P-102", "callout", "CLASH", "Residential waste stack at unit B conflicts with shear wall on S-102", "Sarah Chen", "#ff0000", 21),
+        ("A-801", "callout", "RFI", "Amenity deck waterproofing — no detail at planter drain penetration through slab", "Sarah Chen", "#ff6600", 36),
+    ])
+
     return pid
 
 
@@ -394,6 +435,17 @@ def _insert_feedback(conn, pid, feedback_items):
                (project_id, conflict_id, action, original_severity, adjusted_severity, user_note)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (pid, conflict_id, action, orig_sev, adj_sev, note),
+        )
+
+
+def _insert_markups(conn, pid, markups):
+    """Insert mock Bluebeam markup records."""
+    for sheet_id, markup_type, label, content, author, color, page in markups:
+        conn.execute(
+            """INSERT INTO markups
+               (project_id, sheet_id, markup_type, label, content, author, color, page_number)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (pid, sheet_id, markup_type, label, content, author, color, page),
         )
 
 

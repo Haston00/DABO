@@ -526,6 +526,99 @@ const DABO = {
     },
 
 
+    // ═══ BLUEBEAM MARKUPS ══════════════════════════════
+
+    _markupsData: null,
+
+    _MARKUP_ICONS: {
+        callout: '&#128172;',    // speech bubble
+        cloud: '&#9729;',        // cloud
+        measurement: '&#128207;', // ruler
+        stamp: '&#9989;',        // checkmark
+        highlight: '&#128221;',  // memo
+        text: '&#128196;',       // page
+        other: '&#128204;',      // pushpin
+    },
+
+    _MARKUP_LABEL_COLORS: {
+        'RFI': '#DC2626',
+        'CLASH': '#DC2626',
+        'CRITICAL': '#DC2626',
+        'CODE': '#DC2626',
+        'HOLD': '#F59E0B',
+        'VERIFY': '#F59E0B',
+        'REROUTE': '#F59E0B',
+        'REVISE': '#F59E0B',
+        'DETAIL': '#7C3AED',
+        'VIBRATION': '#7C3AED',
+        'SPEC': '#2563EB',
+        'DIM': '#2563EB',
+        'APPROVED': '#059669',
+    },
+
+    async loadMarkups() {
+        const pid = this.getProjectId();
+        if (!pid) return;
+
+        try {
+            const data = await this.api(`/api/projects/${pid}/markups`);
+            this._markupsData = data;
+
+            // Update markup count metric
+            const el = document.getElementById('totalMarkups');
+            if (el) el.textContent = data.total || 0;
+
+            if (!data.total) return;
+
+            // Show the markups card
+            const card = document.getElementById('markupsCard');
+            if (card) card.style.display = '';
+
+            // Author badges
+            const authorsDiv = document.getElementById('markupAuthors');
+            if (authorsDiv && data.by_author) {
+                authorsDiv.innerHTML = Object.entries(data.by_author)
+                    .map(([name, count]) => `<span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded">${this._esc(name)} (${count})</span>`)
+                    .join('');
+            }
+
+            this._renderMarkups(data.markups);
+
+        } catch (e) {
+            // Silently skip if markups endpoint not available
+        }
+    },
+
+    _renderMarkups(markups) {
+        const container = document.getElementById('markupsList');
+        if (!container) return;
+
+        container.innerHTML = markups.map(m => {
+            const icon = this._MARKUP_ICONS[m.markup_type] || this._MARKUP_ICONS.other;
+            const labelColor = this._MARKUP_LABEL_COLORS[m.label] || '#6B7280';
+            return `
+                <div class="markup-item" data-type="${m.markup_type}">
+                    <div class="markup-header">
+                        <span class="markup-icon">${icon}</span>
+                        <span class="markup-sheet font-mono">${this._esc(m.sheet_id)}</span>
+                        <span class="markup-label" style="background:${labelColor}">${this._esc(m.label)}</span>
+                        <span class="markup-author">${this._esc(m.author)}</span>
+                    </div>
+                    <div class="markup-content">${this._esc(m.content)}</div>
+                </div>`;
+        }).join('');
+    },
+
+    filterMarkups() {
+        if (!this._markupsData) return;
+        const filter = document.getElementById('markupFilter').value;
+        const markups = filter
+            ? this._markupsData.markups.filter(m => m.markup_type === filter)
+            : this._markupsData.markups;
+        this._renderMarkups(markups);
+    },
+
+
     // ═══ PLAN REVIEW PAGE ════════════════════════════════
 
     _SEV_COLORS: {

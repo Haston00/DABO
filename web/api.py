@@ -564,3 +564,40 @@ def list_all_rules():
         for r in CONFLICT_RULES.values()
     ]
     return jsonify({"rules": rules})
+
+
+# ── Markups (Bluebeam / PDF Annotations) ──────────────────
+
+@api_bp.route("/projects/<int:pid>/markups", methods=["GET"])
+def list_markups(pid):
+    sheet_filter = request.args.get("sheet_id", "")
+    conn = get_conn()
+    if sheet_filter:
+        rows = conn.execute(
+            "SELECT * FROM markups WHERE project_id = ? AND sheet_id = ? ORDER BY page_number, id",
+            (pid, sheet_filter),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM markups WHERE project_id = ? ORDER BY sheet_id, page_number, id",
+            (pid,),
+        ).fetchall()
+    conn.close()
+
+    markups = [dict(r) for r in rows]
+
+    # Summary stats
+    by_type = {}
+    by_author = {}
+    for m in markups:
+        t = m.get("markup_type", "other")
+        by_type[t] = by_type.get(t, 0) + 1
+        a = m.get("author", "Unknown")
+        by_author[a] = by_author.get(a, 0) + 1
+
+    return jsonify({
+        "markups": markups,
+        "total": len(markups),
+        "by_type": by_type,
+        "by_author": by_author,
+    })

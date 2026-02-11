@@ -284,19 +284,39 @@ def generate_rfis(pid):
 
     try:
         from analysis.rfi_generator import generate_rfis as gen_rfis
-        rfi_log = gen_rfis(conflicts, project["name"])
+        from analysis.conflict_detector import Conflict, DetectionResult
+
+        # Rebuild Conflict objects from the JSON dicts
+        conflict_objs = []
+        for c in conflicts:
+            conflict_objs.append(Conflict(
+                conflict_id=c.get("conflict_id", ""),
+                rule_id=c.get("rule_id", ""),
+                rule_name=c.get("rule_name", ""),
+                severity=c.get("severity", "INFO"),
+                category=c.get("category", ""),
+                description=c.get("description", ""),
+                sheets_involved=c.get("sheets_involved", []),
+                disciplines=c.get("disciplines", []),
+                evidence=c.get("evidence", []),
+                location=c.get("location", ""),
+                suggested_action=c.get("suggested_action", ""),
+            ))
+
+        det_result = DetectionResult(conflicts=conflict_objs)
+        rfi_log = gen_rfis(det_result, project["name"])
         rfi_list = [
             {
-                "number": r.number,
+                "number": r.rfi_number,
                 "subject": r.subject,
                 "question": r.question,
                 "severity": r.severity,
                 "priority": r.priority,
                 "discipline": r.discipline,
-                "sheets": r.sheets,
+                "sheets": ", ".join(r.sheets_referenced),
                 "status": "Open",
             }
-            for r in rfi_log.entries
+            for r in rfi_log.rfis
         ]
         return jsonify({"rfis": rfi_list, "total": len(rfi_list)})
 

@@ -753,13 +753,26 @@ const DABO = {
             }
         }
 
+        // If still no review data, auto-run the plan review first
         if (!this._reviewData || !this._reviewData.conflicts || !this._reviewData.conflicts.length) {
-            this.toast('No review results with conflicts. Run Plan Review first.', 'error');
-            return;
+            this.toast('Running Plan Review first...', 'info');
+            try {
+                const reviewData = await this.api(`/api/projects/${pid}/review`, { method: 'POST' });
+                this._reviewData = reviewData;
+                sessionStorage.setItem('dabo_review_data', JSON.stringify(reviewData));
+                if (!reviewData.conflicts || !reviewData.conflicts.length) {
+                    this.toast('Plan Review found 0 conflicts — no RFIs to generate.', 'info');
+                    return;
+                }
+                this.toast(`Plan Review found ${reviewData.total_conflicts} conflicts. Generating RFIs...`, 'success');
+            } catch (e) {
+                this.toast(`Plan Review failed: ${e.message}`, 'error');
+                return;
+            }
         }
 
         const btn = document.getElementById('genRfiBtn');
-        btn.disabled = true;
+        if (btn) btn.disabled = true;
 
         try {
             const data = await this.api(`/api/projects/${pid}/rfis`, {
@@ -773,7 +786,7 @@ const DABO = {
             this.toast(`RFI generation failed: ${e.message}`, 'error');
         }
 
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
     },
 
     _renderRFIs() {

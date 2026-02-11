@@ -16,10 +16,10 @@ from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-_HEADER_FILL = PatternFill(start_color="522D80", end_color="522D80", fill_type="solid")
+_HEADER_FILL = PatternFill(start_color="00263A", end_color="00263A", fill_type="solid")
 _HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
-_CRITICAL_FILL = PatternFill(start_color="F66733", end_color="F66733", fill_type="solid")
-_MILESTONE_FILL = PatternFill(start_color="522D80", end_color="522D80", fill_type="solid")
+_CRITICAL_FILL = PatternFill(start_color="FF5A19", end_color="FF5A19", fill_type="solid")
+_MILESTONE_FILL = PatternFill(start_color="00263A", end_color="00263A", fill_type="solid")
 _BORDER = Border(
     left=Side(style="thin"), right=Side(style="thin"),
     top=Side(style="thin"), bottom=Side(style="thin"),

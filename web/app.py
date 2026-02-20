@@ -7,14 +7,30 @@ Cloud deploy:  gunicorn web.app:app
 """
 import os
 import sys
+import threading
+import time
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 
 from utils.db import init_db
+
+
+def _start_keep_alive(url, interval=840):
+    """Ping our own healthz endpoint every 14 min to prevent Render free tier sleep."""
+    def _ping():
+        import urllib.request
+        while True:
+            time.sleep(interval)
+            try:
+                urllib.request.urlopen(url, timeout=10)
+            except Exception:
+                pass
+    t = threading.Thread(target=_ping, daemon=True)
+    t.start()
 
 
 def create_app():
@@ -24,6 +40,7 @@ def create_app():
         static_folder="static",
     )
     app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500 MB
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 86400  # Cache static files 24h
     app.secret_key = os.environ.get("SECRET_KEY", "dabo-mccrory-2026")
 
     # Bootstrap database
@@ -35,6 +52,19 @@ def create_app():
     # Register API blueprint
     from web.api import api_bp
     app.register_blueprint(api_bp)
+
+    # Cache headers for static assets
+    @app.after_request
+    def add_cache_headers(response):
+        if 'static' in (response.headers.get('X-Accel-Redirect', '') or request.path):
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+        return response
+
+    # ── Health check (keeps Render from sleeping) ──────
+
+    @app.route("/healthz")
+    def healthz():
+        return "ok", 200
 
     # ── Page routes ─────────────────────────────────────
 
@@ -93,6 +123,11 @@ def _seed_if_empty():
 
 # Module-level app for gunicorn: `gunicorn web.app:app`
 app = create_app()
+
+# Keep Render free tier alive — self-ping every 14 minutes
+_RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL")
+if _RENDER_URL:
+    _start_keep_alive(f"{_RENDER_URL}/healthz")
 
 
 if __name__ == "__main__":

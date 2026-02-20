@@ -9,3 +9,5 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.12.8
+      - key: RENDER_EXTERNAL_URL
+        value: https://dabo-4cxj.onrender.com

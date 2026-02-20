@@ -370,6 +370,19 @@
     border-radius: 8px;
     transition: width 0.3s ease;
 }
+.progress-fill.progress-animated {
+    background: repeating-linear-gradient(
+        -45deg,
+        #FF5A19, #FF5A19 10px,
+        #FF8A50 10px, #FF8A50 20px
+    );
+    background-size: 200% 100%;
+    animation: progressStripe 1s linear infinite;
+}
+@keyframes progressStripe {
+    from { background-position: 0 0; }
+    to { background-position: 40px 0; }
+}
 
 
 /* ── Spinner ───────────────────────────────────────── */

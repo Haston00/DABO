@@ -247,9 +247,25 @@ const DABO = {
         const formData = new FormData();
         this._selectedFiles.forEach(f => formData.append('files', f));
 
+        // Phase-based status messages instead of fake percentages
+        const phases = [
+            { text: 'Processing PDFs...', delay: 2000 },
+            { text: 'Classifying sheets by discipline...', delay: 4000 },
+            { text: 'Extracting entities & specs...', delay: 6000 },
+            { text: 'Building cross-references...', delay: 8000 },
+        ];
+        const phaseTimers = [];
+
         progressText.textContent = `Uploading ${this._selectedFiles.length} file(s)...`;
-        progressFill.style.width = '30%';
-        progressPct.textContent = '30%';
+        progressFill.style.width = '100%';
+        progressFill.classList.add('progress-animated');
+        progressPct.textContent = '';
+
+        phases.forEach(p => {
+            phaseTimers.push(setTimeout(() => {
+                progressText.textContent = p.text;
+            }, p.delay));
+        });
 
         try {
             const result = await this.api(`/api/projects/${pid}/upload`, {
@@ -257,9 +273,13 @@ const DABO = {
                 body: formData,
             });
 
+            // Cancel pending phase timers
+            phaseTimers.forEach(t => clearTimeout(t));
+
+            progressFill.classList.remove('progress-animated');
             progressFill.style.width = '100%';
-            progressPct.textContent = '100%';
-            progressText.textContent = 'Done!';
+            progressText.textContent = `Done! ${result.uploaded} file(s) processed.`;
+            progressPct.textContent = '';
 
             this.toast(`Processed ${result.uploaded} file(s)`, 'success');
             this._selectedFiles = [];
@@ -271,6 +291,8 @@ const DABO = {
             }, 1500);
 
         } catch (e) {
+            phaseTimers.forEach(t => clearTimeout(t));
+            progressFill.classList.remove('progress-animated');
             this.toast(`Upload failed: ${e.message}`, 'error');
         }
 
@@ -466,7 +488,7 @@ const DABO = {
             const hasDrawing = this._DEMO_DRAWINGS[s.sheet_id];
             const viewBtn = hasDrawing
                 ? `<button class="btn-sm btn-view" onclick="DABO.viewDrawing('${this._esc(s.sheet_id)}','${this._esc(s.sheet_name || '')}')">View</button>`
-                : '<span class="text-gray-300 text-xs">—</span>';
+                : `<button class="btn-sm btn-view" disabled title="Drawing preview not available" style="opacity:0.35;cursor:not-allowed;">View</button>`;
             return `
                 <tr>
                     <td class="font-mono font-semibold">${this._esc(s.sheet_id || '—')}</td>
@@ -501,13 +523,40 @@ const DABO = {
                         <button class="drawing-modal-close" onclick="DABO.closeDrawing()">&times;</button>
                     </div>
                     <iframe id="drawingFrame" class="drawing-frame"></iframe>
+                    <div id="drawingError" class="drawing-error" style="display:none;">
+                        <div style="text-align:center;padding:4rem 2rem;color:#888;">
+                            <div style="font-size:2.5rem;margin-bottom:1rem;">&#128196;</div>
+                            <div style="font-size:1.1rem;font-weight:600;color:#333;margin-bottom:0.5rem;">Drawing preview unavailable</div>
+                            <div style="font-size:0.85rem;">The source PDF could not be loaded. The file may have been moved or the server is unreachable.</div>
+                        </div>
+                    </div>
                 </div>
             `;
             document.body.appendChild(modal);
         }
 
         document.getElementById('drawingTitle').textContent = `${sheetId} — ${sheetName}`;
-        document.getElementById('drawingFrame').src = url;
+        const frame = document.getElementById('drawingFrame');
+        const errorDiv = document.getElementById('drawingError');
+        frame.style.display = '';
+        errorDiv.style.display = 'none';
+
+        // Detect load failures via timeout — iframes don't fire onerror for HTTP failures
+        const loadTimeout = setTimeout(() => {
+            try {
+                // If we can't access contentDocument, it may have loaded cross-origin (which is OK)
+                // Only show error if the frame is completely blank
+                if (!frame.contentDocument && !frame.contentWindow) {
+                    frame.style.display = 'none';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (e) {
+                // Cross-origin — PDF likely loaded fine
+            }
+        }, 10000);
+
+        frame.onload = function() { clearTimeout(loadTimeout); };
+        frame.src = url;
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     },

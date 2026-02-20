@@ -13,8 +13,254 @@ from flask import Blueprint, request, jsonify, send_file
 from config.settings import PROJECTS_DIR
 from utils.db import get_conn
 from utils.helpers import file_hash
+from classification.text_parser import ParsedSheet, ParsedToken
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+
+
+# ── Demo ParsedSheet builder ─────────────────────────────
+# Populates discipline-appropriate notes, spec refs, equipment tags,
+# callouts, and code refs so the conflict detector finds real issues.
+
+def _tok(ttype, raw, value="", ctx=""):
+    return ParsedToken(token_type=ttype, raw=raw, value=value or raw, context=ctx)
+
+
+_DEMO_PARSED: dict[str, callable] = {}
+
+
+def _build_demo_parsed(discipline: str) -> ParsedSheet:
+    builder = _DEMO_PARSED.get(discipline)
+    if builder:
+        return builder()
+    return ParsedSheet()
+
+
+def _arch_parsed() -> ParsedSheet:
+    return ParsedSheet(
+        notes=[
+            _tok("note", "CEILING HEIGHT IN LOBBY SHALL BE 12'-0\" AFF. VERIFY PLENUM SPACE WITH MECHANICAL FOR DUCTWORK CLEARANCE."),
+            _tok("note", "DOOR D-101 HARDWARE GROUP 4 WITH CLOSER. SEE DOOR SCHEDULE FOR RATING. VERIFY WALL DEPTH WITH STRUCTURAL."),
+            _tok("note", "PROVIDE DEPRESSED SLAB AT TILE AREAS PER FINISH SCHEDULE. COORDINATE RECESS DEPTH WITH STRUCTURAL."),
+            _tok("note", "SHEAR WALL SW-1 SHOWN ON STRUCTURAL. NO OPENINGS PERMITTED WITHOUT STRUCTURAL ENGINEER APPROVAL."),
+            _tok("note", "CURTAIN WALL SYSTEM AT SOUTH ELEVATION. VERIFY SLAB EDGE POUR-BACK CONDITION WITH STRUCTURAL."),
+            _tok("note", "RATED WALL TYPE RW-2 EXTENDS TO UNDERSIDE OF DECK ABOVE. FIRESTOP ALL PENETRATIONS PER SPEC."),
+            _tok("note", "PROVIDE FLASHING AT WINDOW HEAD, SILL, AND JAMB CONDITIONS. SEE DETAIL 3/A-501."),
+            _tok("note", "EGRESS CORRIDOR WIDTH 6'-0\" MINIMUM. EXIT SIGNS AT EACH CHANGE OF DIRECTION PER IBC."),
+            _tok("note", "ADA RESTROOM LAYOUT PER ICC A117.1. PROVIDE GRAB BAR AND 60 INCH TURNING RADIUS."),
+            _tok("note", "PARAPET CAP FLASHING AND COPING PER DETAIL. COORDINATE EXPANSION JOINT COVER AT ROOF."),
+        ],
+        spec_refs=[
+            _tok("spec_ref", "SECTION 09 29 00", "09 29 00"),
+            _tok("spec_ref", "SECTION 08 44 13", "08 44 13"),
+            _tok("spec_ref", "SECTION 07 92 00", "07 92 00"),
+            _tok("spec_ref", "SECTION 09 51 00", "09 51 00"),
+        ],
+        callouts=[
+            _tok("callout", "3/A-501", "3/A-501"),
+            _tok("callout", "1/A-301", "1/A-301"),
+            _tok("callout", "A/A-601", "A/A-601"),
+        ],
+        door_marks=[
+            _tok("door", "D-101", "D-101"),
+            _tok("door", "D-102", "D-102"),
+            _tok("door", "D-201", "D-201"),
+        ],
+        room_refs=[
+            _tok("room", "ROOM 101", "101"),
+            _tok("room", "ROOM 201", "201"),
+            _tok("room", "ROOM 105", "105"),
+        ],
+        drawing_refs=[
+            _tok("drawing_ref", "SEE S-101", "S-101"),
+            _tok("drawing_ref", "SEE M-101", "M-101"),
+        ],
+        code_refs=[
+            _tok("code_ref", "IBC 2021", "IBC 2021"),
+            _tok("code_ref", "ICC A117.1", "ICC A117.1"),
+        ],
+        grid_refs=[
+            _tok("grid", "GRID A", "A"),
+            _tok("grid", "GRID 3", "3"),
+        ],
+    )
+
+
+def _str_parsed() -> ParsedSheet:
+    return ParsedSheet(
+        notes=[
+            _tok("note", "CONCRETE 4000 PSI F'C AT 28 DAYS. MIX DESIGN PER SECTION 03 30 00. VERIFY ALL BEAM SIZES WITH SCHEDULE."),
+            _tok("note", "MOMENT FRAME CONNECTION AT GRID L-10. PROVIDE SHEAR TAB AND CLIP ANGLE PER DETAIL 2/S-301."),
+            _tok("note", "EMBED PLATE AND ANCHOR BOLT LAYOUT AT COLUMN BASE PLATE. COORDINATE WITH FOUNDATION PLAN."),
+            _tok("note", "SHEAR WALL SW-1 AT GRID A-3. NO OPENINGS WITHOUT ENGINEER REVIEW. COORDINATE WITH ARCHITECTURAL."),
+            _tok("note", "SLAB ON GRADE 5\" THICK WITH #4 REINFORCING MESH AT 12\" O.C. EACH WAY. CONTROL JOINT LAYOUT PER PLAN."),
+            _tok("note", "STRUCTURAL OPENING REQUIRED FOR MECHANICAL DUCT PENETRATION AT BEAM B-12. PROVIDE SLEEVE."),
+            _tok("note", "EXPANSION JOINT AT GRID J. CONTINUOUS THROUGH ALL LEVELS. COORDINATE WITH ARCHITECTURAL FINISHES."),
+            _tok("note", "LIVE LOAD DESIGN: OFFICE 80 PSF, CORRIDOR 100 PSF, MEZZANINE STORAGE 125 PSF."),
+            _tok("note", "BELOW GRADE FOUNDATION WALL. WATERPROOFING MEMBRANE BY ARCHITECTURAL. VERIFY FOOTING DEPTH."),
+            _tok("note", "ROOF FRAMING SLOPE 1/4\" PER FOOT TO DRAIN LOCATIONS. VERIFY WITH PLUMBING ROOF DRAIN LAYOUT."),
+        ],
+        spec_refs=[
+            _tok("spec_ref", "SECTION 03 30 00", "03 30 00"),
+            _tok("spec_ref", "SECTION 05 12 00", "05 12 00"),
+            _tok("spec_ref", "SECTION 03 20 00", "03 20 00"),
+        ],
+        callouts=[
+            _tok("callout", "2/S-301", "2/S-301"),
+            _tok("callout", "1/S-401", "1/S-401"),
+        ],
+        drawing_refs=[
+            _tok("drawing_ref", "SEE A-101", "A-101"),
+        ],
+        grid_refs=[
+            _tok("grid", "GRID A", "A"),
+            _tok("grid", "GRID L", "L"),
+            _tok("grid", "GRID J", "J"),
+        ],
+    )
+
+
+def _mech_parsed() -> ParsedSheet:
+    return ParsedSheet(
+        notes=[
+            _tok("note", "AHU-1 SUPPLY DUCT 24x12 ROUTED BELOW BEAM B-12. VERIFY PLENUM CLEARANCE WITH STRUCTURAL. CEILING HEIGHT 9'-6\"."),
+            _tok("note", "RTU-2 ON STRUCTURAL DUNNAGE. WEIGHT 2800 LBS. VIBRATION ISOLATION WITH SPRING INERTIA BASE PER DETAIL."),
+            _tok("note", "EXHAUST AIR LOUVER MIN 10'-0\" SEPARATION FROM OUTDOOR AIR INTAKE PER IMC. VERIFY ON ROOF PLAN."),
+            _tok("note", "CHILLED WATER PIPE INSULATION 1.5\" THICK. ALLOW CLEARANCE FOR INSULATION IN CEILING SPACE."),
+            _tok("note", "KITCHEN HOOD MAKEUP AIR UNIT MAU-1 PROVIDES 100% REPLACEMENT AIR. COORDINATE DUCT ROUTING WITH STRUCTURAL."),
+            _tok("note", "RETURN AIR PLENUM CROSSES FIRE-RATED WALL RW-2. PROVIDE FIRE DAMPER AND SMOKE DAMPER AT PENETRATION."),
+            _tok("note", "VAV-201 ABOVE GWB CEILING. PROVIDE ACCESS PANEL 24\"x24\" IN CEILING BELOW FOR SERVICE."),
+            _tok("note", "CONDENSATE DRAIN FROM AHU-1 TO NEAREST PLUMBING CONNECTION. PROVIDE P-TRAP AND AIR GAP."),
+            _tok("note", "REFRIGERANT LINE SET FROM CU-1 TO INDOOR UNITS. VRF SYSTEM PIPING PER MANUFACTURER."),
+            _tok("note", "OUTDOOR AIR VENTILATION PER ASHRAE 62.1. MINIMUM OA CFM SHOWN ON SCHEDULE."),
+        ],
+        equipment_tags=[
+            _tok("equipment", "AHU-1", "AHU-1"),
+            _tok("equipment", "RTU-2", "RTU-2"),
+            _tok("equipment", "MAU-1", "MAU-1"),
+            _tok("equipment", "VAV-201", "VAV-201"),
+            _tok("equipment", "CU-1", "CU-1"),
+            _tok("equipment", "EF-1", "EF-1"),
+        ],
+        spec_refs=[
+            _tok("spec_ref", "SECTION 23 05 00", "23 05 00"),
+            _tok("spec_ref", "SECTION 23 73 00", "23 73 00"),
+        ],
+        callouts=[
+            _tok("callout", "1/M-301", "1/M-301"),
+        ],
+        drawing_refs=[
+            _tok("drawing_ref", "SEE S-101", "S-101"),
+            _tok("drawing_ref", "SEE A-101", "A-101"),
+        ],
+        code_refs=[
+            _tok("code_ref", "IMC 2021", "IMC 2021"),
+            _tok("code_ref", "ASHRAE 62.1", "ASHRAE 62.1"),
+        ],
+    )
+
+
+def _elec_parsed() -> ParsedSheet:
+    return ParsedSheet(
+        notes=[
+            _tok("note", "MDP PANEL SCHEDULE: 480V 3PH. CONNECTED LOAD 350A. DEMAND LOAD 280A. AIC RATING 65 KAIC."),
+            _tok("note", "PANEL LP-1A: 208/120V 1PH. CIRCUIT 1-20 LIGHTING. VERIFY VOLTAGE WITH MECHANICAL EQUIPMENT NAMEPLATE."),
+            _tok("note", "GENERATOR 150KW DIESEL WITH ATS TRANSFER SWITCH. STANDBY POWER FOR EMERGENCY LIGHTING AND FIRE PUMP."),
+            _tok("note", "CONDUIT ROUTING IN CEILING PLENUM. COORDINATE WITH DUCTWORK ROUTING ON MECHANICAL DRAWINGS."),
+            _tok("note", "NEC 110.26 WORKING CLEARANCE 36 INCH MINIMUM AT ALL ELECTRICAL PANELS. VERIFY WALL DEPTH WITH ARCHITECTURAL."),
+            _tok("note", "EMERGENCY LIGHTING AND EXIT SIGNS PER EGRESS PLAN. 1 FC MINIMUM AT EXIT PATH PER IBC."),
+            _tok("note", "TRANSFORMER VAULT VENTILATION PER NEC 450.45. COORDINATE WITH MECHANICAL FOR EXHAUST FAN."),
+            _tok("note", "DEDICATED DISCONNECT FOR AHU-1 AND RTU-2. CIRCUIT AND WIRE SIZE PER PANEL SCHEDULE."),
+            _tok("note", "GFCI PROTECTION AT ALL OUTDOOR AND WET LOCATION RECEPTACLES PER NEC."),
+            _tok("note", "FEEDER TO SUB-PANEL LP-2A: CONDUCTOR SIZE #2 AWG. VERIFY VOLTAGE DROP FOR CIRCUIT LENGTH."),
+        ],
+        equipment_tags=[
+            _tok("equipment", "MDP", "MDP-1"),
+            _tok("equipment", "LP-1A", "LP-1A"),
+            _tok("equipment", "LP-2A", "LP-2A"),
+            _tok("equipment", "ATS-1", "ATS-1"),
+            _tok("equipment", "GEN-1", "GEN-1"),
+            _tok("equipment", "AHU-1", "AHU-1"),
+            _tok("equipment", "RTU-2", "RTU-2"),
+        ],
+        spec_refs=[
+            _tok("spec_ref", "SECTION 26 24 16", "26 24 16"),
+            _tok("spec_ref", "SECTION 26 05 00", "26 05 00"),
+        ],
+        drawing_refs=[
+            _tok("drawing_ref", "SEE M-101", "M-101"),
+        ],
+        code_refs=[
+            _tok("code_ref", "NEC 2020", "NEC 2020"),
+            _tok("code_ref", "NEC 110.26", "NEC 110.26"),
+            _tok("code_ref", "NEC 450", "NEC 450"),
+        ],
+    )
+
+
+def _plmb_parsed() -> ParsedSheet:
+    return ParsedSheet(
+        notes=[
+            _tok("note", "WATER HEATER WH-1: 80 GALLON, 199000 BTU NATURAL GAS. FIXTURE UNIT DEMAND CALCULATION ON SCHEDULE."),
+            _tok("note", "ROOF DRAIN RD-1 THROUGH RD-4 WITH OVERFLOW SCUPPER. DRAINAGE AREA PER IPC CALCULATION. LEADER SIZE 4\"."),
+            _tok("note", "BACKFLOW PREVENTER RPZ IN UTILITY ROOM. PROVIDE FLOOR DRAIN WITHIN 2 FEET PER CODE."),
+            _tok("note", "GREASE INTERCEPTOR AT KITCHEN. FOOD SERVICE WASTE LINE SEPARATE FROM SANITARY. SIZE PER IPC."),
+            _tok("note", "WASTE PIPE SLOPE 1/4 INCH PER FOOT FOR 3\" AND SMALLER. GRADE AND INVERT ELEVATIONS ON PLAN."),
+            _tok("note", "ADA LAVATORY WITH INSULATION KIT. KNEE CLEARANCE PER ICC A117.1. COORDINATE WITH ARCHITECTURAL."),
+            _tok("note", "NATURAL GAS PIPING SIZED PER DEMAND. ROUTE AWAY FROM IGNITION SOURCES PER IFGC."),
+            _tok("note", "SANITARY SEWER CONNECTION AT NORTH PROPERTY LINE. VERIFY INVERT AND CAPACITY WITH CIVIL."),
+            _tok("note", "WATER HAMMER ARRESTOR AT FLUSH VALVE AND SOLENOID LOCATIONS. SIZE PER FIXTURE UNIT."),
+            _tok("note", "PLUMBING VENT TERMINATION 10 FEET FROM AIR INTAKE AND OPERABLE WINDOWS."),
+        ],
+        equipment_tags=[
+            _tok("equipment", "WH-1", "WH-1"),
+            _tok("equipment", "BFP-1", "BFP-1"),
+        ],
+        spec_refs=[
+            _tok("spec_ref", "SECTION 22 10 00", "22 10 00"),
+            _tok("spec_ref", "SECTION 22 40 00", "22 40 00"),
+        ],
+        code_refs=[
+            _tok("code_ref", "IPC 2021", "IPC 2021"),
+            _tok("code_ref", "IFGC 2021", "IFGC 2021"),
+        ],
+    )
+
+
+def _fp_parsed() -> ParsedSheet:
+    return ParsedSheet(
+        notes=[
+            _tok("note", "FIRE SPRINKLER SYSTEM PER NFPA 13. LIGHT HAZARD SPACING 15'-0\" MAX. HYDRAULIC DESIGN AREA ON PLAN."),
+            _tok("note", "SPRINKLER HEAD PENDENT TYPE IN FINISHED CEILING. CONCEALED HEAD IN LOBBY. UPRIGHT IN MECHANICAL ROOM."),
+            _tok("note", "FIRE PUMP 500 GPM AT 100 PSI. JOCKEY PUMP INCLUDED. RATED ENCLOSURE 2-HOUR WITH DRAIN AND VENTILATION."),
+            _tok("note", "FDC LOCATION AT SOUTH ENTRY NEAR FIRE HYDRANT. VERIFY FIRE LANE ACCESS WITH CIVIL."),
+            _tok("note", "STANDPIPE HOSE CONNECTION IN EACH STAIRWELL PER NFPA 14. VERIFY TRAVEL DISTANCE."),
+            _tok("note", "CONCEALED SPACE ABOVE CEILING REQUIRES SPRINKLER PROTECTION WHERE COMBUSTIBLE PER NFPA 13."),
+            _tok("note", "KITCHEN HOOD SUPPRESSION SYSTEM PER NFPA 96. ANSUL R-102 OR UL 300 LISTED SYSTEM."),
+            _tok("note", "SPRINKLER RISER ROOM 6'-0\" x 8'-0\" MINIMUM. PROVIDE CLEARANCE FOR VALVES AND GAUGES."),
+            _tok("note", "DUCT VS SPRINKLER MAIN ELEVATION CONFLICT AT CORRIDOR. SPRINKLER MAIN BELOW DUCT PER COORDINATION."),
+            _tok("note", "WATER MAIN FIRE FLOW 1500 GPM AT 20 PSI RESIDUAL. VERIFY WITH CIVIL HYDRANT FLOW TEST."),
+        ],
+        spec_refs=[
+            _tok("spec_ref", "SECTION 21 13 13", "21 13 13"),
+        ],
+        code_refs=[
+            _tok("code_ref", "NFPA 13", "NFPA 13"),
+            _tok("code_ref", "NFPA 14", "NFPA 14"),
+            _tok("code_ref", "NFPA 96", "NFPA 96"),
+        ],
+        drawing_refs=[
+            _tok("drawing_ref", "SEE A-101", "A-101"),
+        ],
+    )
+
+
+_DEMO_PARSED["ARCH"] = _arch_parsed
+_DEMO_PARSED["STR"] = _str_parsed
+_DEMO_PARSED["MECH"] = _mech_parsed
+_DEMO_PARSED["ELEC"] = _elec_parsed
+_DEMO_PARSED["PLMB"] = _plmb_parsed
+_DEMO_PARSED["FP"] = _fp_parsed
 
 
 # ── Projects ────────────────────────────────────────────────
@@ -215,25 +461,33 @@ def run_review(pid):
         from analysis.cross_reference import CrossReferenceMap
         from classification.entity_extractor import SheetEntities
 
-        # Build synthetic entities from DB sheets (same as Streamlit dashboard)
+        # Build synthetic entities from DB sheets with realistic parsed data
         entities_list = []
         disc_present = {}
         for s in sheets:
             sid = s["sheet_id"]
             disc = s["discipline"]
-            entities_list.append(SheetEntities(
+            ent = SheetEntities(
                 sheet_id=sid,
                 page=0,
                 discipline_code=disc,
                 discipline_name=disc,
-            ))
+            )
+            ent.parsed = _build_demo_parsed(disc)
+            entities_list.append(ent)
             if disc not in disc_present:
                 disc_present[disc] = []
             disc_present[disc].append(sid)
 
-        # Build cross-reference map
+        # Build cross-reference map with equipment refs from parsed data
+        equip_refs = {}
+        for ent in entities_list:
+            for tag in ent.parsed.equipment_tags:
+                equip_refs.setdefault(tag.value, []).append(ent.sheet_id)
         xref = CrossReferenceMap(
             disciplines_present=disc_present,
+            equipment_refs=equip_refs,
+            all_equipment=set(equip_refs.keys()),
         )
 
         # Get suppressed rules

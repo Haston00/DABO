@@ -61,8 +61,9 @@
         font-weight: 500;
         letter-spacing: 4px;
         text-transform: uppercase;
-        color: rgba(255,255,255,0.5);
+        color: #522D80;
         margin-top: 0.4rem;
+        text-shadow: 0 0 20px rgba(82,45,128,0.4);
     }
 
     .splash-tagline {
@@ -82,16 +83,34 @@
         letter-spacing: 2px;
     }
 
-    /* Unmute hint */
-    .unmute-hint {
+    /* Sound toggle */
+    .sound-toggle {
+        display: inline-block;
         margin-top: 1.5rem;
+        padding: 0.5rem 1.5rem;
+        background: transparent;
+        color: rgba(255,255,255,0.6);
         font-size: 0.8rem;
-        color: rgba(255,255,255,0.5);
-        letter-spacing: 1px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
         opacity: 0;
-        animation: fadeUp 1s ease-out 1.5s forwards;
+        animation: fadeUp 1s ease-out 2s forwards;
     }
-    .unmute-hint.hidden { display: none; }
+    .sound-toggle:hover {
+        border-color: #FF5A19;
+        color: #FF5A19;
+        background: rgba(255,90,25,0.08);
+    }
+    .sound-toggle.active {
+        border-color: #FF5A19;
+        color: #FF5A19;
+        background: rgba(255,90,25,0.12);
+    }
 
     /* Enter button — hidden for 8s so you watch the hill run */
     .enter-btn {
@@ -163,7 +182,7 @@
         <div class="splash-acronym">Drawing Audit & Building Orchestration</div>
         <div class="splash-tagline">AI-Powered Plan Review & Scheduling</div>
         <div class="splash-company">McCrory Construction</div>
-        <div class="unmute-hint" id="unmuteHint">Click anywhere for stadium audio</div>
+        <button class="sound-toggle" id="soundToggle" onclick="toggleSound(event)">&#x1F507; Stadium Audio</button>
         <button class="enter-btn" id="enterBtn" onclick="enterDashboard()">
             ENTER
         </button>
@@ -219,16 +238,24 @@
         }
     }, 9000);
 
-    // Unmute on first click — gives full stadium audio (cannon, crowd, Tiger Rag)
-    document.addEventListener('click', function() {
-        if (!unmuted && player && player.unMute) {
+    // Toggle stadium audio on/off via button
+    function toggleSound(e) {
+        e.stopPropagation();
+        var btn = document.getElementById('soundToggle');
+        if (!player || !player.unMute) return;
+        if (!unmuted) {
             player.unMute();
             player.setVolume(80);
             unmuted = true;
-            var hint = document.getElementById('unmuteHint');
-            if (hint) hint.classList.add('hidden');
+            btn.innerHTML = '&#x1F50A; Stadium Audio';
+            btn.classList.add('active');
+        } else {
+            player.mute();
+            unmuted = false;
+            btn.innerHTML = '&#x1F507; Stadium Audio';
+            btn.classList.remove('active');
         }
-    });
+    }
 
     function enterDashboard() {
         var wrap = document.getElementById('splashWrap');

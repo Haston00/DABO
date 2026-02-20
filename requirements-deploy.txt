@@ -1,4 +1,4 @@
-# DABO — Deployment requirements (no OCR/PDF heavy deps)
+# DABO — Deployment requirements
 flask>=3.0.0
 gunicorn>=22.0.0
 openpyxl>=3.1.0
@@ -6,3 +6,5 @@ pandas>=2.0.0
 numpy>=1.24.0
 networkx>=3.0
 python-dateutil>=2.8.0
+PyMuPDF>=1.24.0
+pdfplumber>=0.11.0

@@ -11,3 +11,7 @@ services:
         value: 3.12.8
       - key: RENDER_EXTERNAL_URL
         value: https://dabo-4cxj.onrender.com
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

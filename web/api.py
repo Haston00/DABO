@@ -13,6 +13,7 @@ from flask import Blueprint, request, jsonify, send_file
 from config.settings import PROJECTS_DIR
 from utils.db import get_conn
 from utils.helpers import file_hash
+from utils import storage as cloud
 from classification.text_parser import ParsedSheet, ParsedToken
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -341,6 +342,9 @@ def upload_files(pid):
 
         dest = proj_dir / f.filename
         f.save(str(dest))
+
+        # Persist to Supabase so files survive Render restarts
+        cloud.upload_file(dest, pid, f.filename)
 
         fhash = file_hash(str(dest))
         conn = get_conn()
